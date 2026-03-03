@@ -80,31 +80,8 @@
       <h2>רוסטר קודם ידני</h2>
       <form id="previous-roster-form" class="form-grid">
         <div class="field-group">
-          <label for="pr-date">Date</label>
+          <label for="pr-date">Start date (Day D)</label>
           <input type="date" id="pr-date" required />
-        </div>
-        <div class="field-group">
-          <label for="pr-start-time">Start time</label>
-          <input type="time" id="pr-start-time" required />
-        </div>
-        <div class="field-group">
-          <label for="pr-end-time">End time</label>
-          <input type="time" id="pr-end-time" required />
-        </div>
-        <div class="field-group">
-          <label for="pr-position">Position</label>
-          <select id="pr-position" required>
-            <option value="">Select</option>
-            <option value="משטח">משטח</option>
-            <option value="ש.ג. אחורי">ש.ג. אחורי</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label for="pr-name">Name</label>
-          <input type="text" id="pr-name" required />
-        </div>
-        <div class="field-group">
-          <button type="submit" class="primary-btn">Add Row</button>
         </div>
       </form>
 
@@ -117,7 +94,6 @@
               <th>End</th>
               <th>Position</th>
               <th>Name</th>
-              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -126,7 +102,7 @@
       </div>
 
       <div class="button-row">
-        <button id="export-previous-roster-btn" class="secondary-btn">Export Previous Roster CSV</button>
+        <button id="export-previous-roster-btn" class="secondary-btn" disabled>Export Previous Roster CSV</button>
         <button id="clear-previous-roster-btn" class="danger-btn">Clear All</button>
       </div>
     </section>

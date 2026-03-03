@@ -6,6 +6,81 @@ const PREVIOUS_ROSTER_STORAGE_KEY = "iss_manual_previous_roster";
 let manualSoldiers = [];
 let manualPreviousRoster = [];
 
+const PREVIOUS_ROSTER_TIME_BLOCKS = [
+  ["10:00", "12:00"],
+  ["12:00", "14:00"],
+  ["14:00", "16:00"],
+  ["16:00", "18:00"],
+  ["18:00", "20:00"],
+  ["20:00", "22:00"],
+  ["22:00", "00:00"],
+  ["00:00", "02:00"],
+  ["02:00", "04:00"],
+  ["04:00", "06:00"],
+  ["06:00", "08:00"],
+  ["08:00", "10:00"],
+];
+
+const PREVIOUS_ROSTER_POSITIONS = ["משטח", "ש.ג. אחורי"];
+const PREVIOUS_ROSTER_TOTAL_ROWS =
+  PREVIOUS_ROSTER_TIME_BLOCKS.length * PREVIOUS_ROSTER_POSITIONS.length; // 24
+
+let previousRosterStartDate = "";
+let previousRosterNames = new Array(PREVIOUS_ROSTER_TOTAL_ROWS).fill("");
+
+function computeDateForStartTime(startTime, baseDateStr) {
+  if (!baseDateStr) return "";
+  const hourPart = startTime.split(":")[0];
+  const hour = parseInt(hourPart, 10);
+  if (!Number.isFinite(hour)) {
+    return baseDateStr;
+  }
+  if (hour >= 10) {
+    return baseDateStr;
+  }
+  const d = new Date(baseDateStr + "T00:00:00");
+  if (Number.isNaN(d.getTime())) {
+    return baseDateStr;
+  }
+  d.setDate(d.getDate() + 1);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function buildPreviousRosterRows() {
+  const rows = [];
+  for (let blockIndex = 0; blockIndex < PREVIOUS_ROSTER_TIME_BLOCKS.length; blockIndex++) {
+    const [start_time, end_time] = PREVIOUS_ROSTER_TIME_BLOCKS[blockIndex];
+    const date = computeDateForStartTime(start_time, previousRosterStartDate);
+    for (let posIndex = 0; posIndex < PREVIOUS_ROSTER_POSITIONS.length; posIndex++) {
+      const position = PREVIOUS_ROSTER_POSITIONS[posIndex];
+      const rowIndex = blockIndex * PREVIOUS_ROSTER_POSITIONS.length + posIndex;
+      rows.push({
+        date,
+        start_time,
+        end_time,
+        position,
+        name: (previousRosterNames[rowIndex] || "").trim(),
+      });
+    }
+  }
+  return rows;
+}
+
+function isPreviousRosterComplete() {
+  if (!previousRosterStartDate) return false;
+  if (previousRosterNames.length !== PREVIOUS_ROSTER_TOTAL_ROWS) return false;
+  return previousRosterNames.every((n) => n && n.trim() !== "");
+}
+
+function updatePreviousRosterExportButtonState() {
+  const exportBtn = document.getElementById("export-previous-roster-btn");
+  if (!exportBtn) return;
+  exportBtn.disabled = !isPreviousRosterComplete();
+}
+
 function loadFromStorage() {
   try {
     const s = localStorage.getItem(SOLDIERS_STORAGE_KEY);
@@ -19,10 +94,24 @@ function loadFromStorage() {
   try {
     const r = localStorage.getItem(PREVIOUS_ROSTER_STORAGE_KEY);
     if (r) {
-      manualPreviousRoster = JSON.parse(r);
+      const parsed = JSON.parse(r);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        previousRosterStartDate = parsed.startDate || "";
+        const storedNames = Array.isArray(parsed.names) ? parsed.names : [];
+        previousRosterNames = new Array(PREVIOUS_ROSTER_TOTAL_ROWS)
+          .fill("")
+          .map((_, idx) => (storedNames[idx] || "").toString());
+      } else {
+        previousRosterStartDate = "";
+        previousRosterNames = new Array(PREVIOUS_ROSTER_TOTAL_ROWS).fill("");
+      }
+    } else {
+      previousRosterStartDate = "";
+      previousRosterNames = new Array(PREVIOUS_ROSTER_TOTAL_ROWS).fill("");
     }
   } catch {
-    manualPreviousRoster = [];
+    previousRosterStartDate = "";
+    previousRosterNames = new Array(PREVIOUS_ROSTER_TOTAL_ROWS).fill("");
   }
 }
 
@@ -34,10 +123,11 @@ function saveSoldiers() {
 }
 
 function savePreviousRoster() {
-  localStorage.setItem(
-    PREVIOUS_ROSTER_STORAGE_KEY,
-    JSON.stringify(manualPreviousRoster)
-  );
+  const payload = {
+    startDate: previousRosterStartDate,
+    names: previousRosterNames,
+  };
+  localStorage.setItem(PREVIOUS_ROSTER_STORAGE_KEY, JSON.stringify(payload));
 }
 
 function renderSoldiersTable() {
@@ -85,32 +175,42 @@ function renderPreviousRosterTable() {
   if (!tbody) return;
   tbody.innerHTML = "";
 
+  const dateInput = document.getElementById("pr-date");
+  if (dateInput) {
+    dateInput.value = previousRosterStartDate || "";
+  }
+
+  manualPreviousRoster = buildPreviousRosterRows();
+
   manualPreviousRoster.forEach((row, index) => {
     const tr = document.createElement("tr");
-    const cells = [
+    const infoCells = [
       row.date,
       row.start_time,
       row.end_time,
       row.position,
-      row.name,
     ];
-    for (const val of cells) {
+    for (const val of infoCells) {
       const td = document.createElement("td");
       td.textContent = val;
       tr.appendChild(td);
     }
 
-    const actionsTd = document.createElement("td");
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "Delete";
-    delBtn.className = "danger-btn";
-    delBtn.addEventListener("click", () => {
-      manualPreviousRoster.splice(index, 1);
-      savePreviousRoster();
-      renderPreviousRosterTable();
+    const nameTd = document.createElement("td");
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.value = row.name || "";
+    nameInput.dataset.index = String(index);
+    nameInput.addEventListener("input", () => {
+      const idx = parseInt(nameInput.dataset.index, 10);
+      if (Number.isFinite(idx)) {
+        previousRosterNames[idx] = nameInput.value;
+        savePreviousRoster();
+        updatePreviousRosterExportButtonState();
+      }
     });
-    actionsTd.appendChild(delBtn);
-    tr.appendChild(actionsTd);
+    nameTd.appendChild(nameInput);
+    tr.appendChild(nameTd);
 
     tbody.appendChild(tr);
   });
@@ -211,151 +311,15 @@ function setupSoldiersForm() {
 }
 
 function setupPreviousRosterForm() {
-  const form = document.getElementById("previous-roster-form");
-  if (!form) return;
-
-  const ALLOWED_TWO_HOUR_SLOTS = [
-    ["10:00", "12:00"],
-    ["12:00", "14:00"],
-    ["14:00", "16:00"],
-    ["16:00", "18:00"],
-    ["18:00", "20:00"],
-    ["20:00", "22:00"],
-    ["22:00", "00:00"],
-    ["00:00", "02:00"],
-    ["02:00", "04:00"],
-    ["04:00", "06:00"],
-    ["06:00", "08:00"],
-    ["08:00", "10:00"],
-  ];
-
-  function isAllowedTwoHourSlot(start, end) {
-    return ALLOWED_TWO_HOUR_SLOTS.some(
-      ([s, e]) => s === start && e === end
-    );
-  }
-
-  function validatePreviousRosterForExport() {
-    const REQUIRED_RECORDS = ALLOWED_TWO_HOUR_SLOTS.length * 2; // 24
-    const REQUIRED_POSITIONS = ["משטח", "ש.ג. אחורי"];
-
-    if (manualPreviousRoster.length !== REQUIRED_RECORDS) {
-      alert(
-        "Previous roster must contain exactly 24 records: " +
-          "for each 2-hour slot there must be two guards, one for each position, " +
-          "with different guard names."
-      );
-      return false;
-    }
-
-    const allowedSlotKeys = new Set(
-      ALLOWED_TWO_HOUR_SLOTS.map(([s, e]) => `${s}-${e}`)
-    );
-
-    const slotGroups = {};
-    for (const row of manualPreviousRoster) {
-      const key = `${row.start_time}-${row.end_time}`;
-      if (!allowedSlotKeys.has(key)) {
-        alert(
-          "Previous roster contains a time range that is not one of the allowed 2-hour slots."
-        );
-        return false;
-      }
-      if (!slotGroups[key]) {
-        slotGroups[key] = [];
-      }
-      slotGroups[key].push(row);
-    }
-
-    const slotKeys = Object.keys(slotGroups);
-    if (slotKeys.length !== ALLOWED_TWO_HOUR_SLOTS.length) {
-      alert(
-        "Previous roster must cover every 2-hour slot exactly once, " +
-          "with two guards (one per position) for each slot."
-      );
-      return false;
-    }
-
-    for (const key of slotKeys) {
-      const rows = slotGroups[key];
-      if (rows.length !== 2) {
-        alert(
-          "Each 2-hour slot must have exactly two guards, one for each position."
-        );
-        return false;
-      }
-
-      const positions = rows.map((r) => r.position);
-      const positionSet = new Set(positions);
-      if (positionSet.size !== 2) {
-        alert(
-          "In each 2-hour slot there must be one guard for each position, " +
-            "and the two guards cannot share the same position."
-        );
-        return false;
-      }
-
-      for (const requiredPos of REQUIRED_POSITIONS) {
-        if (!positionSet.has(requiredPos)) {
-          alert(
-            "Each 2-hour slot must include exactly one guard for each position."
-          );
-          return false;
-        }
-      }
-
-      const names = rows.map((r) => r.name.trim());
-      const nameSet = new Set(names);
-      if (nameSet.size !== 2) {
-        alert(
-          "In each 2-hour slot the two guards must have different names."
-        );
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const dateInput = document.getElementById("pr-date");
-    const startInput = document.getElementById("pr-start-time");
-    const endInput = document.getElementById("pr-end-time");
-    const positionSelect = document.getElementById("pr-position");
-    const nameInput = document.getElementById("pr-name");
-
-    const date = dateInput.value;
-    const start = startInput.value;
-    const end = endInput.value;
-    const position = positionSelect.value;
-    const name = nameInput.value.trim();
-
-    if (!date || !start || !end || !position || !name) {
-      return;
-    }
-
-    if (!isAllowedTwoHourSlot(start, end)) {
-      alert(
-        "The shift must be exactly two hours and one of the allowed slots:\n" +
-          "10:00-12:00, 12:00-14:00, 14:00-16:00, 16:00-18:00,\n" +
-          "18:00-20:00, 20:00-22:00, 22:00-00:00, 00:00-02:00,\n" +
-          "02:00-04:00, 04:00-06:00, 06:00-08:00, 08:00-10:00."
-      );
-      return;
-    }
-
-    manualPreviousRoster.push({
-      date,
-      start_time: start,
-      end_time: end,
-      position,
-      name,
+  const dateInput = document.getElementById("pr-date");
+  if (dateInput) {
+    dateInput.addEventListener("change", () => {
+      previousRosterStartDate = dateInput.value || "";
+      savePreviousRoster();
+      renderPreviousRosterTable();
+      updatePreviousRosterExportButtonState();
     });
-    savePreviousRoster();
-    renderPreviousRosterTable();
-    form.reset();
-  });
+  }
 
   const exportBtn = document.getElementById(
     "export-previous-roster-btn"
@@ -363,7 +327,11 @@ function setupPreviousRosterForm() {
   if (exportBtn) {
     exportBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      if (!validatePreviousRosterForExport()) return;
+      if (!isPreviousRosterComplete()) {
+        alert("You must fill all 24 names to export the previous roster CSV.");
+        return;
+      }
+      const rows = buildPreviousRosterRows();
       const headers = [
         "date",
         "start_time",
@@ -371,7 +339,7 @@ function setupPreviousRosterForm() {
         "position",
         "name",
       ];
-      const csvText = toCSV(headers, manualPreviousRoster);
+      const csvText = toCSV(headers, rows);
       downloadCSV("previous_roster.csv", csvText);
     });
   }
@@ -382,11 +350,16 @@ function setupPreviousRosterForm() {
   if (clearBtn) {
     clearBtn.addEventListener("click", (e) => {
       e.preventDefault();
+      previousRosterStartDate = "";
+      previousRosterNames = new Array(PREVIOUS_ROSTER_TOTAL_ROWS).fill("");
       manualPreviousRoster = [];
       savePreviousRoster();
       renderPreviousRosterTable();
+      updatePreviousRosterExportButtonState();
     });
   }
+
+  updatePreviousRosterExportButtonState();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
