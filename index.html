@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Intelligent Soldier Scheduling</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Intelligent Soldier Scheduling</h1>
+    <p>Generate a new guard roster from CSV files (previous roster + soldiers list).</p>
+  </header>
+
+  <main class="app-main">
+    <section class="card">
+      <h2>CSV Inputs</h2>
+      <div class="field-group">
+        <label for="previous-roster-input">Previous roster CSV</label>
+        <input type="file" id="previous-roster-input" accept=".csv,text/csv" />
+        <div id="previous-roster-summary" class="summary-text"></div>
+      </div>
+
+      <div class="field-group">
+        <label for="soldiers-input">Soldiers list CSV</label>
+        <input type="file" id="soldiers-input" accept=".csv,text/csv" />
+        <div id="soldiers-summary" class="summary-text"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Configuration</h2>
+      <div class="field-row">
+        <div class="field-group">
+          <label for="min-rest-hours">Minimum rest hours</label>
+          <input type="number" id="min-rest-hours" min="0" step="1" value="6" />
+        </div>
+        <div class="field-group">
+          <label for="max-shifts-per-soldier">Max shifts per soldier (optional)</label>
+          <input type="number" id="max-shifts-per-soldier" min="1" step="1" />
+        </div>
+        <div class="field-group">
+          <label for="random-seed">Random seed (optional)</label>
+          <input type="text" id="random-seed" placeholder="Leave empty for current time" />
+        </div>
+      </div>
+      <button id="generate-roster-btn" class="primary-btn">Generate New Roster</button>
+    </section>
+
+    <section class="card">
+      <h2>Result</h2>
+      <div id="error-box" class="error-box" aria-live="polite"></div>
+      <div class="table-wrapper">
+        <table id="roster-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>משטח</th>
+              <th>ש.ג. אחורי</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+      <button id="export-roster-btn" class="secondary-btn" disabled>Export roster_new.csv</button>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <a href="manual.html" id="manual-link">Manual input (create CSVs)</a>
+  </footer>
+
+  <script type="module" src="js/indexPage.js"></script>
+</body>
+</html>
+

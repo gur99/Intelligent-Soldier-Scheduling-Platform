@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8" />
+  <title>Intelligent Soldier Scheduling - Manual Input</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Intelligent Soldier Scheduling - Manual Input</h1>
+    <nav>
+      <a href="index.html">Back to generator</a>
+    </nav>
+  </header>
+
+  <main class="app-main">
+    <section class="tabs">
+      <button class="tab-btn active" data-tab="soldiers-tab">רשימת חיילים ידנית</button>
+      <button class="tab-btn" data-tab="previous-roster-tab">רוסטר קודם ידני</button>
+    </section>
+
+    <section id="soldiers-tab" class="card tab-content active">
+      <h2>רשימת חיילים ידנית</h2>
+      <form id="soldier-form" class="form-grid">
+        <div class="field-group">
+          <label for="soldier-name">Name</label>
+          <input type="text" id="soldier-name" required />
+        </div>
+        <div class="field-group">
+          <label for="soldier-group">Group</label>
+          <select id="soldier-group" required>
+            <option value="">Select</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+          </select>
+        </div>
+        <div class="field-group checkbox-group">
+          <label>
+            <input type="checkbox" id="soldier-is-commander" />
+            is_commander
+          </label>
+        </div>
+        <div class="field-group checkbox-group">
+          <label>
+            <input type="checkbox" id="soldier-returned-today" />
+            returned_from_home_today
+          </label>
+        </div>
+        <div class="field-group">
+          <button type="submit" class="primary-btn">Add Soldier</button>
+        </div>
+      </form>
+
+      <div class="table-wrapper">
+        <table id="soldiers-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Group</th>
+              <th>Commander</th>
+              <th>Returned today</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="button-row">
+        <button id="export-soldiers-btn" class="secondary-btn">Export Soldiers CSV</button>
+        <button id="clear-soldiers-btn" class="danger-btn">Clear All</button>
+      </div>
+    </section>
+
+    <section id="previous-roster-tab" class="card tab-content">
+      <h2>רוסטר קודם ידני</h2>
+      <form id="previous-roster-form" class="form-grid">
+        <div class="field-group">
+          <label for="pr-date">Date</label>
+          <input type="date" id="pr-date" required />
+        </div>
+        <div class="field-group">
+          <label for="pr-start-time">Start time</label>
+          <input type="time" id="pr-start-time" required />
+        </div>
+        <div class="field-group">
+          <label for="pr-end-time">End time</label>
+          <input type="time" id="pr-end-time" required />
+        </div>
+        <div class="field-group">
+          <label for="pr-position">Position</label>
+          <select id="pr-position" required>
+            <option value="">Select</option>
+            <option value="משטח">משטח</option>
+            <option value="ש.ג. אחורי">ש.ג. אחורי</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="pr-name">Name</label>
+          <input type="text" id="pr-name" required />
+        </div>
+        <div class="field-group">
+          <button type="submit" class="primary-btn">Add Row</button>
+        </div>
+      </form>
+
+      <div class="table-wrapper">
+        <table id="previous-roster-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Position</th>
+              <th>Name</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="button-row">
+        <button id="export-previous-roster-btn" class="secondary-btn">Export Previous Roster CSV</button>
+        <button id="clear-previous-roster-btn" class="danger-btn">Clear All</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="js/manualPage.js"></script>
+</body>
+</html>
+
