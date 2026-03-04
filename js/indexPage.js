@@ -15,6 +15,68 @@ let soldiersErrors = [];
 let currentRosterRows = [];
 let jokerConfigs = [];
 
+function buildWhatsAppMessageFromRoster(rows) {
+  if (!rows || !rows.length) return "";
+
+  const lines = [];
+
+  // Header (Hebrew, right-to-left friendly)
+  lines.push("סידור שמירות משטח + ש.ג אחורי");
+  // Try to derive the actual day names from the roster dates.
+  const HEBREW_DAY_NAMES = [
+    "ראשון",
+    "שני",
+    "שלישי",
+    "רביעי",
+    "חמישי",
+    "שישי",
+    "שבת",
+  ];
+
+  let baseDate = null;
+  for (const row of rows) {
+    if (!row.date) continue;
+    const d = new Date(row.date + "T00:00:00");
+    if (!Number.isNaN(d.getTime())) {
+      baseDate = d;
+      break;
+    }
+  }
+
+  if (baseDate) {
+    const nextDate = new Date(baseDate.getTime());
+    nextDate.setDate(nextDate.getDate() + 1);
+    const dayName = HEBREW_DAY_NAMES[baseDate.getDay()] || "";
+    const nextDayName = HEBREW_DAY_NAMES[nextDate.getDay()] || "";
+    lines.push(`מ־10:00 יום ${dayName} עד 10:00 יום ${nextDayName}`);
+  } else {
+    // Fallback to a generic header if we can't parse dates.
+    lines.push(
+      "מ־10:00 יום (היום של השמירות) עד 10:00 יום (יום למחרת)"
+    );
+  }
+  lines.push("(משמרות של שעתיים)");
+  lines.push("");
+
+  // Body: one block per shift
+  for (const row of rows) {
+    const start = row.start_time || "";
+    const end = row.end_time || "";
+    const meshetach = row.meshetach_name || "";
+    const shgAhori = row.shg_ahori_name || "";
+
+    lines.push(`${start}\u2013${end}`);
+    lines.push(`משטח: ${meshetach}`.trimEnd());
+    lines.push(`ש.ג אחורי: ${shgAhori}`.trimEnd());
+    lines.push("");
+  }
+
+  // Footer / disclaimer line
+  lines.push("אם מישהו מזהה טעות בבקשה לעדכן בהקדם🙏");
+
+  return lines.join("\n");
+}
+
 function showSummary(elementId, text) {
   const el = document.getElementById(elementId);
   if (el) {
@@ -351,6 +413,9 @@ function handleGenerateClick() {
 
   const randomSeed = randomSeedInput.value.trim();
   const exportBtn = document.getElementById("export-roster-btn");
+  const exportWhatsappBtn = document.getElementById(
+    "export-roster-whatsapp-btn"
+  );
 
   // #region agent log
   fetch("http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456", {
@@ -409,6 +474,9 @@ function handleGenerateClick() {
     if (exportBtn) {
       exportBtn.disabled = true;
     }
+    if (exportWhatsappBtn) {
+      exportWhatsappBtn.disabled = true;
+    }
     return;
   }
 
@@ -439,6 +507,9 @@ function handleGenerateClick() {
     if (exportBtn) {
       exportBtn.disabled = true;
     }
+    if (exportWhatsappBtn) {
+      exportWhatsappBtn.disabled = true;
+    }
     return;
   }
 
@@ -447,6 +518,9 @@ function handleGenerateClick() {
   setError("");
   if (exportBtn) {
     exportBtn.disabled = currentRosterRows.length === 0;
+  }
+  if (exportWhatsappBtn) {
+    exportWhatsappBtn.disabled = currentRosterRows.length === 0;
   }
 }
 
@@ -504,12 +578,50 @@ async function handleExportClick() {
   downloadCSV(filename, csvText);
 }
 
+async function handleExportWhatsappClick() {
+  if (!currentRosterRows || !currentRosterRows.length) return;
+
+  const text = buildWhatsAppMessageFromRoster(currentRosterRows);
+  if (!text) return;
+
+  // Prefer copying to clipboard so the user can paste directly into WhatsApp.
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("הטקסט של הסידור הועתק ללוח. אפשר להדביק אותו בוואטסאפ.");
+      return;
+    } catch (err) {
+      // Fall through to the non-clipboard fallback below.
+    }
+  }
+
+  // Fallback: open a new window/tab showing the text in RTL so the user can copy it.
+  const w = window.open("", "_blank");
+  if (w && w.document) {
+    const escaped = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    w.document.write(
+      '<!DOCTYPE html><html lang="he"><head><meta charset="UTF-8"><title>WhatsApp Export</title></head><body dir="rtl" style="font-family: system-ui, sans-serif; white-space: pre-wrap;">' +
+        escaped +
+        "</body></html>"
+    );
+    w.document.close();
+  } else {
+    alert("לא ניתן היה לפתוח חלון תצוגה. זה הטקסט להעתקה ידנית:\n\n" + text);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const prevInput = document.getElementById("previous-roster-input");
   const soldiersInput = document.getElementById("soldiers-input");
   const generateBtn = document.getElementById("generate-roster-btn");
   const exportBtn = document.getElementById("export-roster-btn");
   const addJokerBtn = document.getElementById("add-joker-btn");
+  const exportWhatsappBtn = document.getElementById(
+    "export-roster-whatsapp-btn"
+  );
 
   if (prevInput) {
     prevInput.addEventListener("change", (e) => {
@@ -533,6 +645,13 @@ document.addEventListener("DOMContentLoaded", () => {
     exportBtn.addEventListener("click", (e) => {
       e.preventDefault();
       handleExportClick();
+    });
+  }
+
+  if (exportWhatsappBtn) {
+    exportWhatsappBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      handleExportWhatsappClick();
     });
   }
 
