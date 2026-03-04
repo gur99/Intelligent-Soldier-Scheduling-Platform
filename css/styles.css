@@ -165,6 +165,137 @@ tr:nth-child(even) {
   gap: 0.75rem;
 }
 
+.groups-builder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-top: 0.5rem;
+}
+
+.group-section {
+  flex: 1 1 280px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.group-header {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  color: #111827;
+}
+
+.group-a-header {
+  background: #eff6ff;
+}
+
+.group-b-header {
+  background: #ecfdf3;
+}
+
+.group-c-header {
+  background: #fef3c7;
+}
+
+.group-body {
+  padding: 0.5rem 0.75rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.group-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.group-actions {
+  margin-top: 0.5rem;
+}
+
+.soldier-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.35rem 0.4rem;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.commander-row {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+  background: #eff6ff;
+}
+
+.soldier-role-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.commander-row .soldier-role-badge {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.soldier-field {
+  display: flex;
+  align-items: center;
+}
+
+.soldier-name-field {
+  min-width: 0;
+}
+
+.soldier-name-input {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid #cbd2dd;
+  font-size: 0.9rem;
+}
+
+.soldier-returned-field label {
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.soldier-returned-field input[type="checkbox"] {
+  margin-right: 0.25rem;
+}
+
+.soldier-actions-field {
+  justify-content: flex-end;
+}
+
+.soldier-actions-field .secondary-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.input-error {
+  border-color: #e63946 !important;
+  background: #ffe9eb;
+}
+
 .tabs {
   display: flex;
   gap: 0.5rem;
