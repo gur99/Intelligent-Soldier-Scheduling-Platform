@@ -619,6 +619,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const generateBtn = document.getElementById("generate-roster-btn");
   const exportBtn = document.getElementById("export-roster-btn");
   const addJokerBtn = document.getElementById("add-joker-btn");
+  const toggleJokerSectionBtn = document.getElementById(
+    "toggle-joker-section"
+  );
+  const jokerSectionBody = document.getElementById("joker-section-body");
   const exportWhatsappBtn = document.getElementById(
     "export-roster-whatsapp-btn"
   );
@@ -652,6 +656,26 @@ document.addEventListener("DOMContentLoaded", () => {
     exportWhatsappBtn.addEventListener("click", (e) => {
       e.preventDefault();
       handleExportWhatsappClick();
+    });
+  }
+
+  if (toggleJokerSectionBtn && jokerSectionBody) {
+    // Ensure the Joker section starts collapsed.
+    jokerSectionBody.style.display = "none";
+
+    toggleJokerSectionBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const isHidden =
+        jokerSectionBody.style.display === "none" ||
+        jokerSectionBody.style.display === "";
+
+      if (isHidden) {
+        jokerSectionBody.style.display = "block";
+        toggleJokerSectionBtn.textContent = "Hide Joker options";
+      } else {
+        jokerSectionBody.style.display = "none";
+        toggleJokerSectionBtn.textContent = "Add Joker";
+      }
     });
   }
 

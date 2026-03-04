@@ -61,89 +61,109 @@
         Jokers are assigned manually only and block that position for the selected interval.
       </p>
 
-      <div class="field-row">
-        <div class="field-group">
-          <label for="joker-name">Joker Name</label>
-          <input type="text" id="joker-name" />
-        </div>
-        <div class="field-group">
-          <label for="joker-position">Position</label>
-          <select id="joker-position">
-            <option value="">Select</option>
-            <option value="משטח">משטח</option>
-            <option value="ש.ג. אחורי">ש.ג. אחורי</option>
-          </select>
+      <div class="collapsible-section">
+        <button
+          id="toggle-joker-section"
+          class="secondary-btn collapsible-toggle"
+          type="button"
+        >
+          Add Joker
+        </button>
+
+        <div
+          id="joker-section-body"
+          class="collapsible-body"
+          style="display: none;"
+        >
+          <div class="field-row">
+            <div class="field-group">
+              <label for="joker-name">Joker Name</label>
+              <input type="text" id="joker-name" />
+            </div>
+            <div class="field-group">
+              <label for="joker-position">Position</label>
+              <select id="joker-position">
+                <option value="">Select</option>
+                <option value="משטח">משטח</option>
+                <option value="ש.ג. אחורי">ש.ג. אחורי</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label for="joker-start-date">Start Date</label>
+              <input type="date" id="joker-start-date" />
+            </div>
+            <div class="field-group">
+              <label for="joker-start-time">Start Time</label>
+              <select id="joker-start-time">
+                <option value="">Select</option>
+                <option value="00:00">00:00</option>
+                <option value="02:00">02:00</option>
+                <option value="04:00">04:00</option>
+                <option value="06:00">06:00</option>
+                <option value="08:00">08:00</option>
+                <option value="10:00">10:00</option>
+                <option value="12:00">12:00</option>
+                <option value="14:00">14:00</option>
+                <option value="16:00">16:00</option>
+                <option value="18:00">18:00</option>
+                <option value="20:00">20:00</option>
+                <option value="22:00">22:00</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="joker-end-date">End Date</label>
+              <input type="date" id="joker-end-date" />
+            </div>
+            <div class="field-group">
+              <label for="joker-end-time">End Time</label>
+              <select id="joker-end-time">
+                <option value="">Select</option>
+                <option value="00:00">00:00</option>
+                <option value="02:00">02:00</option>
+                <option value="04:00">04:00</option>
+                <option value="06:00">06:00</option>
+                <option value="08:00">08:00</option>
+                <option value="10:00">10:00</option>
+                <option value="12:00">12:00</option>
+                <option value="14:00">14:00</option>
+                <option value="16:00">16:00</option>
+                <option value="18:00">18:00</option>
+                <option value="20:00">20:00</option>
+                <option value="22:00">22:00</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>&nbsp;</label>
+              <button id="add-joker-btn" class="secondary-btn" type="button">
+                Add Joker
+              </button>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table id="joker-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Position</th>
+                  <th>Start</th>
+                  <th>End</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <div class="field-row">
-        <div class="field-group">
-          <label for="joker-start-date">Start Date</label>
-          <input type="date" id="joker-start-date" />
-        </div>
-        <div class="field-group">
-          <label for="joker-start-time">Start Time</label>
-          <select id="joker-start-time">
-            <option value="">Select</option>
-            <option value="00:00">00:00</option>
-            <option value="02:00">02:00</option>
-            <option value="04:00">04:00</option>
-            <option value="06:00">06:00</option>
-            <option value="08:00">08:00</option>
-            <option value="10:00">10:00</option>
-            <option value="12:00">12:00</option>
-            <option value="14:00">14:00</option>
-            <option value="16:00">16:00</option>
-            <option value="18:00">18:00</option>
-            <option value="20:00">20:00</option>
-            <option value="22:00">22:00</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label for="joker-end-date">End Date</label>
-          <input type="date" id="joker-end-date" />
-        </div>
-        <div class="field-group">
-          <label for="joker-end-time">End Time</label>
-          <select id="joker-end-time">
-            <option value="">Select</option>
-            <option value="00:00">00:00</option>
-            <option value="02:00">02:00</option>
-            <option value="04:00">04:00</option>
-            <option value="06:00">06:00</option>
-            <option value="08:00">08:00</option>
-            <option value="10:00">10:00</option>
-            <option value="12:00">12:00</option>
-            <option value="14:00">14:00</option>
-            <option value="16:00">16:00</option>
-            <option value="18:00">18:00</option>
-            <option value="20:00">20:00</option>
-            <option value="22:00">22:00</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label>&nbsp;</label>
-          <button id="add-joker-btn" class="secondary-btn">Add Joker</button>
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <table id="joker-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Position</th>
-              <th>Start</th>
-              <th>End</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-        </table>
-      </div>
-
-      <button id="generate-roster-btn" class="primary-btn">Generate New Roster</button>
+      <button id="generate-roster-btn" class="primary-btn">
+        Generate New Roster
+      </button>
     </section>
 
     <section class="card">

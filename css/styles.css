@@ -73,6 +73,18 @@ body {
   gap: 1rem;
 }
 
+.collapsible-section {
+  margin-top: 0.5rem;
+}
+
+.collapsible-toggle {
+  margin-bottom: 0.5rem;
+}
+
+.collapsible-body {
+  margin-top: 0.25rem;
+}
+
 input[type="text"],
 input[type="number"],
 input[type="time"],
