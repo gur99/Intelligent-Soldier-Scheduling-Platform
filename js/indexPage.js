@@ -401,6 +401,12 @@ function handleGenerateClick() {
   let minRestHours = parseInt(minRestInput.value, 10);
   if (!Number.isFinite(minRestHours) || minRestHours < 0) {
     minRestHours = 6;
+  } else {
+    // Restrict to 2-hour intervals (e.g. 6, 8; not 5, 7).
+    minRestHours = Math.max(0, Math.round(minRestHours / 2) * 2);
+  }
+  if (minRestInput) {
+    minRestInput.value = String(minRestHours);
   }
 
   let maxShiftsPerSoldier = null;
