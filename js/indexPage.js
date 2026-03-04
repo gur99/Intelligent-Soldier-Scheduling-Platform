@@ -260,6 +260,28 @@ function handleSoldiersFile(file) {
         });
       }
 
+      // #region agent log
+      fetch("http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "cbeaa6",
+        },
+        body: JSON.stringify({
+          sessionId: "cbeaa6",
+          runId: "initial",
+          hypothesisId: "H1",
+          location: "indexPage.js:handleSoldiersFile:afterParse",
+          message: "Parsed soldiers CSV (returnedToday distribution)",
+          data: {
+            totalRows: rows.length,
+            returnedTodayTrue: rows.filter((s) => !!s.returnedToday).length,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
+
       soldiers = rows;
       const summary =
         "Parsed " +

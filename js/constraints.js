@@ -111,11 +111,41 @@ export function buildEligibilityContext(previousRosterEntries) {
     prevShiftEndMinutesByName[name].push(s.endEpochMin);
   }
 
-  return {
+  const contextResult = {
     yesterdayShiftCount,
     prevShiftEndMinutesByName,
     windowDay,
   };
+
+  // #region agent log
+  fetch(
+    "http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "f35c2a",
+      },
+      body: JSON.stringify({
+        sessionId: "f35c2a",
+        runId: "initial",
+        hypothesisId: "H1",
+        location: "constraints.js:buildEligibilityContext:final",
+        message: "Built eligibility context from previous roster",
+        data: {
+          windowDay,
+          namesWithPrevShifts: Object.keys(prevShiftEndMinutesByName).slice(
+            0,
+            10
+          ),
+        },
+        timestamp: Date.now(),
+      }),
+    }
+  ).catch(() => {});
+  // #endregion
+
+  return contextResult;
 }
 
 export function isEligibleForShift(
@@ -148,6 +178,35 @@ export function isEligibleForShift(
     return false;
   }
 
+  if (soldier.returnedToday && hour < 14) {
+    // #region agent log
+    fetch("http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "cbeaa6",
+      },
+      body: JSON.stringify({
+        sessionId: "cbeaa6",
+        runId: "post-fix",
+        hypothesisId: "H2",
+        location: "constraints.js:isEligibleForShift:returnedBefore14",
+        message:
+          "Rejected returned-from-home soldier for pre-14:00 shift",
+        data: {
+          soldierName: soldier.name,
+          soldierKey,
+          startHour: hour,
+          position,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+
+    return false;
+  }
+
   const minRestMinutes =
     (config && typeof config.minRestHours === "number"
       ? config.minRestHours
@@ -159,6 +218,37 @@ export function isEligibleForShift(
   for (const endMin of prevEnds) {
     const diff = startEpoch - endMin;
     if (diff < minRestMinutes) {
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "f35c2a",
+          },
+          body: JSON.stringify({
+            sessionId: "f35c2a",
+            runId: "initial",
+            hypothesisId: "H2",
+            location:
+              "constraints.js:isEligibleForShift:prevRestRejected",
+            message:
+              "Rejected candidate due to insufficient rest vs previous roster",
+            data: {
+              soldierName: soldier.name,
+              soldierKey,
+              startEpoch,
+              previousEndEpoch: endMin,
+              diffMinutes: diff,
+              minRestMinutes,
+            },
+            timestamp: Date.now(),
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
+
       return false;
     }
   }
@@ -168,6 +258,37 @@ export function isEligibleForShift(
   for (const endMin of todayEnds) {
     const diff = startEpoch - endMin;
     if (diff < minRestMinutes) {
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "f35c2a",
+          },
+          body: JSON.stringify({
+            sessionId: "f35c2a",
+            runId: "initial",
+            hypothesisId: "H3",
+            location:
+              "constraints.js:isEligibleForShift:todayRestRejected",
+            message:
+              "Rejected candidate due to insufficient rest vs today assignments",
+            data: {
+              soldierName: soldier.name,
+              soldierKey,
+              startEpoch,
+              previousEndEpoch: endMin,
+              diffMinutes: diff,
+              minRestMinutes,
+            },
+            timestamp: Date.now(),
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
+
       return false;
     }
   }
@@ -183,6 +304,53 @@ export function isEligibleForShift(
       return false;
     }
   }
+
+  let minDiffPrev = null;
+  for (const endMin of prevEnds) {
+    const d = startEpoch - endMin;
+    if (minDiffPrev === null || d < minDiffPrev) {
+      minDiffPrev = d;
+    }
+  }
+  let minDiffToday = null;
+  for (const endMin of todayEnds) {
+    const d = startEpoch - endMin;
+    if (minDiffToday === null || d < minDiffToday) {
+      minDiffToday = d;
+    }
+  }
+
+  // #region agent log
+  fetch(
+    "http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "f35c2a",
+      },
+      body: JSON.stringify({
+        sessionId: "f35c2a",
+        runId: "initial",
+        hypothesisId: "H4",
+        location: "constraints.js:isEligibleForShift:accepted",
+        message: "Accepted candidate for shift",
+        data: {
+          soldierName: soldier.name,
+          soldierKey,
+          position,
+          startHour: hour,
+          minRestMinutes,
+          minDiffPrev,
+          minDiffToday,
+          prevEndsCount: prevEnds.length,
+          todayEndsCount: todayEnds.length,
+        },
+        timestamp: Date.now(),
+      }),
+    }
+  ).catch(() => {});
+  // #endregion
 
   return true;
 }
