@@ -2,6 +2,8 @@ import {
   POSITION_MESHETACH,
   POSITION_SHG_AHORI,
   buildShiftBlocks,
+  parseDate,
+  parseTimeToMinutes,
 } from "./domain.js";
 import {
   buildEligibilityContext,
@@ -9,6 +11,71 @@ import {
   scoreCandidate,
 } from "./constraints.js";
 import { createSeededRNG } from "./random.js";
+
+function buildJokerIntervals(jokers) {
+  const intervals = [];
+  if (!Array.isArray(jokers)) return intervals;
+
+  for (const j of jokers) {
+    if (!j) continue;
+    const {
+      name,
+      position,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
+    } = j;
+
+    if (!name || !position || !startDate || !startTime || !endDate || !endTime) {
+      continue;
+    }
+
+    const startDateObj = parseDate(startDate);
+    const endDateObj = parseDate(endDate);
+    const startMinutes = parseTimeToMinutes(startTime);
+    const endMinutes = parseTimeToMinutes(endTime);
+
+    if (!startDateObj || !endDateObj || startMinutes == null || endMinutes == null) {
+      continue;
+    }
+
+    const startMidnightMs = new Date(
+      startDateObj.getFullYear(),
+      startDateObj.getMonth(),
+      startDateObj.getDate()
+    ).getTime();
+    const endMidnightMs = new Date(
+      endDateObj.getFullYear(),
+      endDateObj.getMonth(),
+      endDateObj.getDate()
+    ).getTime();
+
+    const startMs = startMidnightMs + startMinutes * 60 * 1000;
+    let endMs = endMidnightMs + endMinutes * 60 * 1000;
+
+    if (endMs <= startMs) {
+      endMs += 24 * 60 * 60 * 1000;
+    }
+
+    const startEpochMin = Math.floor(startMs / (60 * 1000));
+    const endEpochMin = Math.floor(endMs / (60 * 1000));
+
+    if (endEpochMin <= startEpochMin) {
+      continue;
+    }
+
+    intervals.push({
+      id: `${String(name).trim()}|${position}|${startEpochMin}|${endEpochMin}`,
+      name: String(name).trim(),
+      position,
+      startEpochMin,
+      endEpochMin,
+    });
+  }
+
+  return intervals;
+}
 
 export function generateRoster(previousRosterEntries, soldiers, config) {
   const effectiveConfig = {
@@ -22,7 +89,29 @@ export function generateRoster(previousRosterEntries, soldiers, config) {
         ? config.maxShiftsPerSoldier
         : null,
     randomSeed: config?.randomSeed || "",
+    jokers: Array.isArray(config?.jokers) ? config.jokers : [],
   };
+
+  // #region agent log
+  fetch("http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "b82c1e",
+    },
+    body: JSON.stringify({
+      sessionId: "b82c1e",
+      runId: "initial",
+      hypothesisId: "H2",
+      location: "rosterGenerator.js:generateRoster:entry",
+      message: "Entered generateRoster",
+      data: {
+        jokerCount: effectiveConfig.jokers.length,
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
 
   const rng = createSeededRNG(effectiveConfig.randomSeed);
 
@@ -42,6 +131,7 @@ export function generateRoster(previousRosterEntries, soldiers, config) {
   }
 
   const shiftBlocks = buildShiftBlocks(rosterDay);
+  const jokerIntervals = buildJokerIntervals(effectiveConfig.jokers);
   if (!shiftBlocks || shiftBlocks.length !== 12) {
     return {
       success: false,
@@ -75,6 +165,7 @@ export function generateRoster(previousRosterEntries, soldiers, config) {
   };
 
   const rosterRows = [];
+  const jokerUsage = {};
 
   for (const block of shiftBlocks) {
     const row = {
@@ -88,6 +179,76 @@ export function generateRoster(previousRosterEntries, soldiers, config) {
     const positions = [POSITION_MESHETACH, POSITION_SHG_AHORI];
 
     for (const position of positions) {
+      const blockStart = block.startMinutesEpoch;
+      const blockEnd = block.endMinutesEpoch;
+
+      const matchingJokers = jokerIntervals.filter(
+        (j) =>
+          j.position === position &&
+          blockStart < j.endEpochMin &&
+          blockEnd > j.startEpochMin
+      );
+
+      if (matchingJokers.length > 1) {
+        const posLabel =
+          position === POSITION_MESHETACH ? "משטח" : "ש.ג. אחורי";
+        return {
+          success: false,
+          error:
+            "Multiple Joker definitions overlap " +
+            posLabel +
+            " at " +
+            block.date +
+            " " +
+            block.start_time +
+            ". Please adjust Joker intervals so that only one Joker applies to a given position and time.",
+        };
+      }
+
+      if (matchingJokers.length === 1) {
+        const joker = matchingJokers[0];
+        const alreadyUsed = !!jokerUsage[joker.id];
+
+        // #region agent log
+        fetch("http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "b82c1e",
+          },
+          body: JSON.stringify({
+            sessionId: "b82c1e",
+            runId: "post-fix",
+            hypothesisId: "H4",
+            location: "rosterGenerator.js:generateRoster:jokerMatch",
+            message: "Joker matched block",
+            data: {
+              jokerId: joker.id,
+              jokerName: joker.name,
+              position,
+              blockDate: block.date,
+              blockStart: block.start_time,
+              blockEnd: block.end_time,
+              alreadyUsed,
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
+
+        if (!alreadyUsed) {
+          jokerUsage[joker.id] = true;
+        }
+
+        if (position === POSITION_MESHETACH) {
+          row.meshetach_name = joker.name;
+        } else if (position === POSITION_SHG_AHORI) {
+          row.shg_ahori_name = joker.name;
+        }
+
+        continue;
+      }
+
       const candidates = [];
 
       for (const key of soldierKeys) {

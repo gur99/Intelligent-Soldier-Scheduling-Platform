@@ -6,12 +6,14 @@ import {
 } from "./csvUtils.js";
 import { generateRoster } from "./rosterGenerator.js";
 import { normalizePosition } from "./constraints.js";
+import { POSITION_MESHETACH, POSITION_SHG_AHORI } from "./domain.js";
 
 let previousRosterEntries = [];
 let previousRosterErrors = [];
 let soldiers = [];
 let soldiersErrors = [];
 let currentRosterRows = [];
+let jokerConfigs = [];
 
 function showSummary(elementId, text) {
   const el = document.getElementById(elementId);
@@ -32,6 +34,39 @@ function clearTable() {
   if (tbody) {
     tbody.innerHTML = "";
   }
+}
+
+function renderJokerTable() {
+  const tbody = document.querySelector("#joker-table tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  jokerConfigs.forEach((j, index) => {
+    const tr = document.createElement("tr");
+
+    const startLabel = `${j.startDate} ${j.startTime}`;
+    const endLabel = `${j.endDate} ${j.endTime}`;
+
+    const cells = [j.name, j.position, startLabel, endLabel];
+    for (const val of cells) {
+      const td = document.createElement("td");
+      td.textContent = val;
+      tr.appendChild(td);
+    }
+
+    const actionsTd = document.createElement("td");
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "Delete";
+    delBtn.className = "danger-btn";
+    delBtn.addEventListener("click", () => {
+      jokerConfigs.splice(index, 1);
+      renderJokerTable();
+    });
+    actionsTd.appendChild(delBtn);
+    tr.appendChild(actionsTd);
+
+    tbody.appendChild(tr);
+  });
 }
 
 function renderRosterTable(rows) {
@@ -289,14 +324,90 @@ function handleGenerateClick() {
   }
 
   const randomSeed = randomSeedInput.value.trim();
-
-  const result = generateRoster(previousRosterEntries, soldiers, {
-    minRestHours,
-    maxShiftsPerSoldier,
-    randomSeed,
-  });
-
   const exportBtn = document.getElementById("export-roster-btn");
+
+  // #region agent log
+  fetch("http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "b82c1e",
+    },
+    body: JSON.stringify({
+      sessionId: "b82c1e",
+      runId: "initial",
+      hypothesisId: "H1",
+      location: "indexPage.js:handleGenerateClick:beforeGenerate",
+      message: "Before generateRoster",
+      data: {
+        jokerCount: jokerConfigs.length,
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+
+  let result;
+  try {
+    result = generateRoster(previousRosterEntries, soldiers, {
+      minRestHours,
+      maxShiftsPerSoldier,
+      randomSeed,
+      jokers: jokerConfigs,
+    });
+  } catch (err) {
+    // #region agent log
+    fetch("http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "b82c1e",
+      },
+      body: JSON.stringify({
+        sessionId: "b82c1e",
+        runId: "initial",
+        hypothesisId: "H1",
+        location: "indexPage.js:handleGenerateClick:catch",
+        message: "Error thrown by generateRoster",
+        data: {
+          jokerCount: jokerConfigs.length,
+          errorName: err && err.name,
+          errorMessage: err && err.message,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+
+    setError("Unexpected error while generating roster.");
+    if (exportBtn) {
+      exportBtn.disabled = true;
+    }
+    return;
+  }
+
+  // #region agent log
+  fetch("http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "b82c1e",
+    },
+    body: JSON.stringify({
+      sessionId: "b82c1e",
+      runId: "initial",
+      hypothesisId: "H1",
+      location: "indexPage.js:handleGenerateClick:afterGenerate",
+      message: "After generateRoster",
+      data: {
+        jokerCount: jokerConfigs.length,
+        success: !!(result && result.success),
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+
   if (!result.success) {
     setError(result.error || "Failed to generate roster.");
     if (exportBtn) {
@@ -331,6 +442,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const soldiersInput = document.getElementById("soldiers-input");
   const generateBtn = document.getElementById("generate-roster-btn");
   const exportBtn = document.getElementById("export-roster-btn");
+  const addJokerBtn = document.getElementById("add-joker-btn");
 
   if (prevInput) {
     prevInput.addEventListener("change", (e) => {
@@ -356,5 +468,86 @@ document.addEventListener("DOMContentLoaded", () => {
       handleExportClick();
     });
   }
+
+  if (addJokerBtn) {
+    addJokerBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+
+      const nameInput = document.getElementById("joker-name");
+      const positionSelect = document.getElementById("joker-position");
+      const startDateInput = document.getElementById("joker-start-date");
+      const startTimeInput = document.getElementById("joker-start-time");
+      const endDateInput = document.getElementById("joker-end-date");
+      const endTimeInput = document.getElementById("joker-end-time");
+
+      const name = nameInput.value.trim();
+      const positionRaw = positionSelect.value;
+      const startDate = startDateInput.value;
+      const startTime = startTimeInput.value;
+      const endDate = endDateInput.value;
+      const endTime = endTimeInput.value;
+
+      if (!name || !positionRaw || !startDate || !startTime || !endDate || !endTime) {
+        setError(
+          "All Joker fields (name, position, start/end date and time) must be filled."
+        );
+        return;
+      }
+
+      let position;
+      if (positionRaw === POSITION_MESHETACH) {
+        position = POSITION_MESHETACH;
+      } else if (positionRaw === POSITION_SHG_AHORI) {
+        position = POSITION_SHG_AHORI;
+      } else {
+        setError("Invalid Joker position value.");
+        return;
+      }
+
+      setError("");
+
+      jokerConfigs.push({
+        name,
+        position,
+        startDate,
+        startTime,
+        endDate,
+        endTime,
+      });
+
+      // #region agent log
+      fetch("http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "b82c1e",
+        },
+        body: JSON.stringify({
+          sessionId: "b82c1e",
+          runId: "initial",
+          hypothesisId: "H3",
+          location: "indexPage.js:addJokerBtn:afterPush",
+          message: "Added Joker config",
+          data: {
+            jokerCount: jokerConfigs.length,
+            lastJoker: jokerConfigs[jokerConfigs.length - 1],
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
+
+      renderJokerTable();
+
+      nameInput.value = "";
+      positionSelect.value = "";
+      startDateInput.value = "";
+      startTimeInput.value = "";
+      endDateInput.value = "";
+      endTimeInput.value = "";
+    });
+  }
+
+  renderJokerTable();
 });
 
