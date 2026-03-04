@@ -204,15 +204,15 @@ tr:nth-child(even) {
 }
 
 .group-a-header {
-  background: #eff6ff;
+  background: #fecaca; /* bright soft red */
 }
 
 .group-b-header {
-  background: #ecfdf3;
+  background: #fef08a; /* bright soft yellow */
 }
 
 .group-c-header {
-  background: #fef3c7;
+  background: #bfdbfe; /* bright soft blue */
 }
 
 .group-body {
