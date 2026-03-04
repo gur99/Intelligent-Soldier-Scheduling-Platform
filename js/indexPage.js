@@ -82,11 +82,15 @@ function renderRosterTable(rows) {
       row.meshetach_name || "",
       row.shg_ahori_name || "",
     ];
-    for (const val of cells) {
+    cells.forEach((val, index) => {
       const td = document.createElement("td");
       td.textContent = val;
+      // Make the position name columns (משטח, ש.ג. אחורי) display right-to-left.
+      if (index >= 3) {
+        td.classList.add("roster-name-cell");
+      }
       tr.appendChild(td);
-    }
+    });
     tbody.appendChild(tr);
   }
 }
@@ -446,17 +450,58 @@ function handleGenerateClick() {
   }
 }
 
-function handleExportClick() {
+async function handleExportClick() {
   if (!currentRosterRows || !currentRosterRows.length) return;
-  const headers = [
-    "date",
-    "start_time",
-    "end_time",
-    "meshetach_name",
-    "shg_ahori_name",
-  ];
-  const csvText = toCSV(headers, currentRosterRows);
-  downloadCSV("roster_new.csv", csvText);
+  // Export in the same format as the "previous roster" input CSV,
+  // so that today's output can be used as tomorrow's previous roster.
+  const headers = ["date", "start_time", "end_time", "position", "name"];
+  const rows = [];
+
+  for (const row of currentRosterRows) {
+    const base = {
+      date: row.date,
+      start_time: row.start_time,
+      end_time: row.end_time,
+    };
+
+    if (row.meshetach_name && row.meshetach_name.trim()) {
+      rows.push({
+        ...base,
+        position: POSITION_MESHETACH,
+        name: row.meshetach_name.trim(),
+      });
+    }
+
+    if (row.shg_ahori_name && row.shg_ahori_name.trim()) {
+      rows.push({
+        ...base,
+        position: POSITION_SHG_AHORI,
+        name: row.shg_ahori_name.trim(),
+      });
+    }
+  }
+
+  const csvText = toCSV(headers, rows);
+  const filename = "roster_new.csv";
+
+  // Prefer saving directly into a user-chosen folder (e.g. the app's "outputs" folder)
+  // using the File System Access API when available.
+  if (window.showDirectoryPicker) {
+    try {
+      const dirHandle = await window.showDirectoryPicker();
+      const fileHandle = await dirHandle.getFileHandle(filename, {
+        create: true,
+      });
+      const writable = await fileHandle.createWritable();
+      await writable.write(csvText);
+      await writable.close();
+      return;
+    } catch (err) {
+      // If the user cancels or an error occurs, fall back to a regular download.
+    }
+  }
+
+  downloadCSV(filename, csvText);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
