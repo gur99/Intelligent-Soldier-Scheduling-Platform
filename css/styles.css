@@ -150,6 +150,16 @@ td {
   text-align: left;
 }
 
+.roster-name-cell {
+  direction: rtl;
+  text-align: right;
+}
+
+.roster-position-header {
+  direction: rtl;
+  text-align: right;
+}
+
 th {
   background: #f0f2f7;
   font-weight: 600;
