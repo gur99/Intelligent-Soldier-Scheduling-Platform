@@ -153,19 +153,248 @@ function renderSoldiersTable() {
     }
 
     const actionsTd = document.createElement("td");
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "Delete";
-    delBtn.className = "danger-btn";
-    delBtn.addEventListener("click", () => {
-      manualSoldiers.splice(index, 1);
-      saveSoldiers();
-      renderSoldiersTable();
-    });
-    actionsTd.appendChild(delBtn);
+    if (!s.isCommander) {
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "Delete";
+      delBtn.className = "danger-btn";
+      delBtn.addEventListener("click", () => {
+        manualSoldiers.splice(index, 1);
+        saveSoldiers();
+        renderSoldierGroups();
+        renderSoldiersTable();
+      });
+      actionsTd.appendChild(delBtn);
+    }
     tr.appendChild(actionsTd);
 
     tbody.appendChild(tr);
   });
+}
+
+const GROUP_IDS = ["A", "B", "C"];
+
+function getNextSoldierId() {
+  let max = 0;
+  for (const s of manualSoldiers) {
+    const numeric = parseInt(String(s.id || "").replace(/\D/g, ""), 10);
+    if (Number.isFinite(numeric) && numeric > max) {
+      max = numeric;
+    }
+  }
+  return "S" + (max + 1);
+}
+
+function buildDefaultSoldiers() {
+  const soldiers = [];
+  let currentId = 1;
+  GROUP_IDS.forEach((group) => {
+    soldiers.push({
+      id: "S" + currentId++,
+      name: "",
+      group,
+      isCommander: true,
+      returnedToday: false,
+    });
+    for (let i = 0; i < 6; i++) {
+      soldiers.push({
+        id: "S" + currentId++,
+        name: "",
+        group,
+        isCommander: false,
+        returnedToday: false,
+      });
+    }
+  });
+  return soldiers;
+}
+
+function normalizeCommandersPerGroup() {
+  GROUP_IDS.forEach((group) => {
+    const indices = [];
+    manualSoldiers.forEach((s, idx) => {
+      if (s.group === group && s.isCommander) {
+        indices.push(idx);
+      }
+    });
+    if (indices.length === 0) {
+      manualSoldiers.push({
+        id: getNextSoldierId(),
+        name: "",
+        group,
+        isCommander: true,
+        returnedToday: false,
+      });
+    } else if (indices.length > 1) {
+      for (let i = 1; i < indices.length; i++) {
+        manualSoldiers[indices[i]].isCommander = false;
+      }
+    }
+  });
+}
+
+function renderSoldierGroups() {
+  const builder = document.getElementById("soldier-groups-builder");
+  if (!builder) return;
+
+  normalizeCommandersPerGroup();
+
+  GROUP_IDS.forEach((group) => {
+    const rowsContainer = builder.querySelector(
+      `.group-section[data-group="${group}"] .group-rows`
+    );
+    if (!rowsContainer) return;
+    rowsContainer.innerHTML = "";
+
+    const groupSoldiers = manualSoldiers
+      .filter((s) => s.group === group)
+      .slice()
+      .sort((a, b) => {
+        if (a.isCommander && !b.isCommander) return -1;
+        if (!a.isCommander && b.isCommander) return 1;
+        return 0;
+      });
+
+    groupSoldiers.forEach((s) => {
+      const row = document.createElement("div");
+      row.className =
+        "soldier-row " + (s.isCommander ? "commander-row" : "fighter-row");
+      row.dataset.soldierId = s.id;
+
+      const roleBadge = document.createElement("span");
+      roleBadge.className = "soldier-role-badge";
+      roleBadge.textContent = s.isCommander ? "מפקד" : "לוחם";
+      row.appendChild(roleBadge);
+
+      const nameWrapper = document.createElement("div");
+      nameWrapper.className = "soldier-field soldier-name-field";
+      const nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.value = s.name || "";
+      nameInput.placeholder = "שם חייל";
+      nameInput.className = "soldier-name-input";
+      nameInput.dataset.soldierId = s.id;
+      nameInput.addEventListener("input", () => {
+        const soldier = manualSoldiers.find((x) => x.id === s.id);
+        if (soldier) {
+          soldier.name = nameInput.value;
+          saveSoldiers();
+          renderSoldiersTable();
+        }
+        nameInput.classList.remove("input-error");
+        const validationBox = document.getElementById("soldiers-validation");
+        if (validationBox) {
+          validationBox.textContent = "";
+        }
+      });
+      nameWrapper.appendChild(nameInput);
+      row.appendChild(nameWrapper);
+
+      const returnedWrapper = document.createElement("div");
+      returnedWrapper.className = "soldier-field soldier-returned-field";
+      const returnedLabel = document.createElement("label");
+      const returnedCheckbox = document.createElement("input");
+      returnedCheckbox.type = "checkbox";
+      returnedCheckbox.checked = !!s.returnedToday;
+      returnedCheckbox.className = "returned-checkbox";
+      returnedCheckbox.dataset.soldierId = s.id;
+      returnedCheckbox.addEventListener("change", () => {
+        const soldier = manualSoldiers.find((x) => x.id === s.id);
+        if (soldier) {
+          soldier.returnedToday = returnedCheckbox.checked;
+          saveSoldiers();
+          renderSoldiersTable();
+        }
+      });
+      returnedLabel.appendChild(returnedCheckbox);
+      const returnedText = document.createTextNode(" חזר היום מהבית");
+      returnedLabel.appendChild(returnedText);
+      returnedWrapper.appendChild(returnedLabel);
+      row.appendChild(returnedWrapper);
+
+      if (!s.isCommander) {
+        const actionsWrapper = document.createElement("div");
+        actionsWrapper.className = "soldier-field soldier-actions-field";
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "secondary-btn remove-fighter-btn";
+        removeBtn.textContent = "הסר";
+        removeBtn.addEventListener("click", () => {
+          const index = manualSoldiers.findIndex((x) => x.id === s.id);
+          if (index >= 0) {
+            manualSoldiers.splice(index, 1);
+            saveSoldiers();
+            renderSoldierGroups();
+            renderSoldiersTable();
+          }
+        });
+        actionsWrapper.appendChild(removeBtn);
+        row.appendChild(actionsWrapper);
+      }
+
+      rowsContainer.appendChild(row);
+    });
+  });
+}
+
+function validateSoldiersBeforeExport() {
+  const validationBox = document.getElementById("soldiers-validation");
+  if (validationBox) {
+    validationBox.textContent = "";
+  }
+
+  document
+    .querySelectorAll(".soldier-name-input.input-error")
+    .forEach((el) => el.classList.remove("input-error"));
+
+  const emptyNameIds = [];
+  const nameCounts = new Map();
+
+  manualSoldiers.forEach((s) => {
+    const name = (s.name || "").trim();
+    if (!name) {
+      emptyNameIds.push(s.id);
+    } else {
+      nameCounts.set(name, (nameCounts.get(name) || 0) + 1);
+    }
+  });
+
+  let hasBlockingError = false;
+  if (emptyNameIds.length > 0) {
+    hasBlockingError = true;
+    emptyNameIds.forEach((id) => {
+      const input = document.querySelector(
+        `.soldier-name-input[data-soldier-id="${id}"]`
+      );
+      if (input) {
+        input.classList.add("input-error");
+      }
+    });
+    if (validationBox) {
+      validationBox.textContent =
+        "יש שורות ללא שם. נא למלא שם לכל חייל לפני ייצוא.";
+    }
+  }
+
+  const duplicateNames = [];
+  nameCounts.forEach((count, name) => {
+    if (count > 1) {
+      duplicateNames.push(name);
+    }
+  });
+
+  if (duplicateNames.length > 0) {
+    const warningMessage =
+      "אזהרה: נמצאו חיילים עם שמות כפולים: " +
+      duplicateNames.join(", ") +
+      ".";
+    if (validationBox) {
+      validationBox.textContent = validationBox.textContent
+        ? validationBox.textContent + " " + warningMessage
+        : warningMessage;
+    }
+  }
+
+  return { canExport: !hasBlockingError };
 }
 
 function renderPreviousRosterTable() {
@@ -235,44 +464,37 @@ function setupTabs() {
   });
 }
 
-function setupSoldiersForm() {
-  const form = document.getElementById("soldier-form");
-  if (!form) return;
+function setupSoldiersUI() {
+  const builder = document.getElementById("soldier-groups-builder");
+  if (!builder) return;
 
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const nameInput = document.getElementById("soldier-name");
-    const groupSelect = document.getElementById("soldier-group");
-    const isCommanderCheckbox = document.getElementById(
-      "soldier-is-commander"
-    );
-    const returnedCheckbox = document.getElementById(
-      "soldier-returned-today"
-    );
-
-    const name = nameInput.value.trim();
-    const group = groupSelect.value.trim().toUpperCase();
-    const isCommander = isCommanderCheckbox.checked;
-    const returnedToday = returnedCheckbox.checked;
-
-    if (!name || !group) {
-      return;
-    }
-    if (!["A", "B", "C"].includes(group)) {
-      return;
-    }
-
-    const id = "S" + (manualSoldiers.length + 1);
-    manualSoldiers.push({
-      id,
-      name,
-      group,
-      isCommander,
-      returnedToday,
-    });
+  if (!manualSoldiers || manualSoldiers.length === 0) {
+    manualSoldiers = buildDefaultSoldiers();
     saveSoldiers();
-    renderSoldiersTable();
-    form.reset();
+  } else {
+    normalizeCommandersPerGroup();
+    saveSoldiers();
+  }
+
+  builder.addEventListener("click", (e) => {
+    const target = e.target;
+    if (
+      target instanceof HTMLElement &&
+      target.classList.contains("add-fighter-btn")
+    ) {
+      const group = target.getAttribute("data-group");
+      if (!group || !GROUP_IDS.includes(group)) return;
+      manualSoldiers.push({
+        id: getNextSoldierId(),
+        name: "",
+        group,
+        isCommander: false,
+        returnedToday: false,
+      });
+      saveSoldiers();
+      renderSoldierGroups();
+      renderSoldiersTable();
+    }
   });
 
   const exportBtn = document.getElementById("export-soldiers-btn");
@@ -280,6 +502,12 @@ function setupSoldiersForm() {
     exportBtn.addEventListener("click", (e) => {
       e.preventDefault();
       if (!manualSoldiers.length) return;
+
+      const validation = validateSoldiersBeforeExport();
+      if (!validation.canExport) {
+        return;
+      }
+
       const headers = [
         "id",
         "name",
@@ -303,9 +531,14 @@ function setupSoldiersForm() {
   if (clearBtn) {
     clearBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      manualSoldiers = [];
+      manualSoldiers = buildDefaultSoldiers();
       saveSoldiers();
+      renderSoldierGroups();
       renderSoldiersTable();
+      const validationBox = document.getElementById("soldiers-validation");
+      if (validationBox) {
+        validationBox.textContent = "";
+      }
     });
   }
 }
@@ -365,8 +598,9 @@ function setupPreviousRosterForm() {
 document.addEventListener("DOMContentLoaded", () => {
   loadFromStorage();
   setupTabs();
-  setupSoldiersForm();
+  setupSoldiersUI();
   setupPreviousRosterForm();
+  renderSoldierGroups();
   renderSoldiersTable();
   renderPreviousRosterTable();
 });

@@ -32,36 +32,52 @@
 
     <section id="soldiers-tab" class="card tab-content active">
       <h2>רשימת חיילים ידנית</h2>
-      <form id="soldier-form" class="form-grid">
-        <div class="field-group">
-          <label for="soldier-name">Name</label>
-          <input type="text" id="soldier-name" required />
+
+      <div id="soldiers-validation" class="error-box"></div>
+
+      <section id="soldier-groups-builder" class="groups-builder">
+        <div class="group-section" data-group="A">
+          <header class="group-header group-a-header">
+            <h3>קבוצה A</h3>
+          </header>
+          <div class="group-body">
+            <div class="group-rows" id="group-A-rows"></div>
+            <div class="group-actions">
+              <button type="button" class="secondary-btn add-fighter-btn" data-group="A">
+                הוסף לוחם
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="field-group">
-          <label for="soldier-group">Group</label>
-          <select id="soldier-group" required>
-            <option value="">Select</option>
-            <option value="A">A</option>
-            <option value="B">B</option>
-            <option value="C">C</option>
-          </select>
+
+        <div class="group-section" data-group="B">
+          <header class="group-header group-b-header">
+            <h3>קבוצה B</h3>
+          </header>
+          <div class="group-body">
+            <div class="group-rows" id="group-B-rows"></div>
+            <div class="group-actions">
+              <button type="button" class="secondary-btn add-fighter-btn" data-group="B">
+                הוסף לוחם
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="field-group checkbox-group">
-          <label>
-            <input type="checkbox" id="soldier-is-commander" />
-            is_commander
-          </label>
+
+        <div class="group-section" data-group="C">
+          <header class="group-header group-c-header">
+            <h3>קבוצה C</h3>
+          </header>
+          <div class="group-body">
+            <div class="group-rows" id="group-C-rows"></div>
+            <div class="group-actions">
+              <button type="button" class="secondary-btn add-fighter-btn" data-group="C">
+                הוסף לוחם
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="field-group checkbox-group">
-          <label>
-            <input type="checkbox" id="soldier-returned-today" />
-            returned_from_home_today
-          </label>
-        </div>
-        <div class="field-group">
-          <button type="submit" class="primary-btn">Add Soldier</button>
-        </div>
-      </form>
+      </section>
 
       <div class="table-wrapper">
         <table id="soldiers-table">
