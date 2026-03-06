@@ -6,6 +6,68 @@ import {
   formatDate,
 } from "./domain.js";
 
+function normalizeNameKey(str) {
+  return String(str || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function levenshtein(a, b) {
+  const s = String(a || "");
+  const t = String(b || "");
+  const m = s.length;
+  const n = t.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp = new Array(n + 1);
+  for (let j = 0; j <= n; j++) dp[j] = j;
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const temp = dp[j];
+      if (s[i - 1] === t[j - 1]) {
+        dp[j] = prev;
+      } else {
+        dp[j] = 1 + Math.min(prev, dp[j], dp[j - 1]);
+      }
+      prev = temp;
+    }
+  }
+  return dp[n];
+}
+
+function resolveSoldierName(rawName, soldierNames, soldierNameKeys) {
+  const trimmed = String(rawName || "").trim();
+  if (!trimmed) {
+    return { canonicalName: "", distance: 0 };
+  }
+
+  const key = normalizeNameKey(trimmed);
+  for (let i = 0; i < soldierNameKeys.length; i++) {
+    if (soldierNameKeys[i] === key) {
+      return { canonicalName: soldierNames[i], distance: 0 };
+    }
+  }
+
+  let bestIdx = -1;
+  let bestDist = Infinity;
+  for (let i = 0; i < soldierNames.length; i++) {
+    const dist = levenshtein(trimmed, soldierNames[i]);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestIdx = i;
+    }
+  }
+
+  if (bestIdx >= 0 && bestDist <= 2) {
+    return { canonicalName: soldierNames[bestIdx], distance: bestDist };
+  }
+
+  return { canonicalName: trimmed, distance: 0 };
+}
+
 // Normalize position strings from previous roster CSV into Hebrew constants.
 export function normalizePosition(raw) {
   if (raw == null) return null;
@@ -37,9 +99,16 @@ export function normalizePosition(raw) {
 }
 
 // Build context from previous roster: yesterday shift counts and end times per soldier name.
-export function buildEligibilityContext(previousRosterEntries) {
+export function buildEligibilityContext(previousRosterEntries, soldiers) {
   const yesterdayShiftCount = {};
   const prevShiftEndMinutesByName = {};
+
+  const soldierNames = Array.isArray(soldiers)
+    ? soldiers
+        .map((s) => (s && s.name ? String(s.name).trim() : ""))
+        .filter((n) => n)
+    : [];
+  const soldierNameKeys = soldierNames.map((n) => normalizeNameKey(n));
 
   if (!previousRosterEntries || previousRosterEntries.length === 0) {
     return {
@@ -50,6 +119,7 @@ export function buildEligibilityContext(previousRosterEntries) {
   }
 
   const shifts = [];
+  let fuzzyMatchLogs = 0;
   for (const row of previousRosterEntries) {
     if (!row.date || !row.start_time || !row.end_time || !row.name) continue;
     const d = parseDate(row.date);
@@ -73,8 +143,45 @@ export function buildEligibilityContext(previousRosterEntries) {
       endEpochMin += 24 * 60;
     }
 
+    const { canonicalName, distance } = resolveSoldierName(
+      row.name,
+      soldierNames,
+      soldierNameKeys
+    );
+
+    const effectiveName = canonicalName || row.name.trim();
+
+    if (distance > 0 && fuzzyMatchLogs < 5) {
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "2dac1a",
+          },
+          body: JSON.stringify({
+            sessionId: "2dac1a",
+            runId: "investigation",
+            hypothesisId: "H3",
+            location: "constraints.js:buildEligibilityContext:nameResolve",
+            message: "Resolved previous roster name to canonical soldier name",
+            data: {
+              rawName: row.name,
+              canonicalName: effectiveName,
+              distance,
+            },
+            timestamp: Date.now(),
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
+      fuzzyMatchLogs++;
+    }
+
     shifts.push({
-      name: row.name.trim(),
+      name: effectiveName,
       startEpochMin,
       endEpochMin,
     });
@@ -116,6 +223,36 @@ export function buildEligibilityContext(previousRosterEntries) {
     prevShiftEndMinutesByName,
     windowDay,
   };
+
+  const nameSamples = Object.keys(prevShiftEndMinutesByName).slice(0, 20);
+  const countsByNameSample = {};
+  for (const n of nameSamples) {
+    countsByNameSample[n] = prevShiftEndMinutesByName[n].length;
+  }
+
+  // #region agent log
+  fetch("http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "2dac1a",
+    },
+    body: JSON.stringify({
+      sessionId: "2dac1a",
+      runId: "investigation",
+      hypothesisId: "H1",
+      location: "constraints.js:buildEligibilityContext:summary",
+      message: "Previous roster context summary",
+      data: {
+        windowDay,
+        totalNamesWithPrevShifts: Object.keys(prevShiftEndMinutesByName).length,
+        nameSamples,
+        countsByNameSample,
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
 
   // #region agent log
   fetch(
@@ -212,6 +349,44 @@ export function isEligibleForShift(
       ? config.minRestHours
       : 6) * 60;
   const startEpoch = shiftBlock.startMinutesEpoch;
+
+  if (soldier.name === "Luka Musaenko") {
+    const lukaPrevEndsProbe =
+      context.prevShiftEndMinutesByName[soldier.name] || [];
+    const lukaTodayEndsProbe =
+      todayAssignments.endMinutesByName[soldierKey] || [];
+
+    // #region agent log
+    fetch(
+      "http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "2dac1a",
+        },
+        body: JSON.stringify({
+          sessionId: "2dac1a",
+          runId: "investigation",
+          hypothesisId: "H3",
+          location: "constraints.js:isEligibleForShift:luka:entry",
+          message: "Eligibility check for Luka Musaenko",
+          data: {
+            soldierKey,
+            startHour: shiftBlock.startHour,
+            startEpoch,
+            minRestMinutes,
+            lukaPrevEndsCount: lukaPrevEndsProbe.length,
+            lukaTodayEndsCount: lukaTodayEndsProbe.length,
+            lukaPrevEndsSample: lukaPrevEndsProbe.slice(0, 5),
+            lukaTodayEndsSample: lukaTodayEndsProbe.slice(0, 5),
+          },
+          timestamp: Date.now(),
+        }),
+      }
+    ).catch(() => {});
+    // #endregion
+  }
 
   const prevEnds =
     context.prevShiftEndMinutesByName[soldier.name] || [];
@@ -327,11 +502,11 @@ export function isEligibleForShift(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Debug-Session-Id": "f35c2a",
+        "X-Debug-Session-Id": "2dac1a",
       },
       body: JSON.stringify({
-        sessionId: "f35c2a",
-        runId: "initial",
+        sessionId: "2dac1a",
+        runId: "investigation",
         hypothesisId: "H4",
         location: "constraints.js:isEligibleForShift:accepted",
         message: "Accepted candidate for shift",
