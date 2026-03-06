@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
   <link rel="icon" type="image/png" href="./icon/icon.png">
   <link rel="shortcut icon" href="./icon/icon.png">
@@ -17,7 +17,7 @@
 <body>
   <header class="app-header">
     <h1>Intelligent Soldier Scheduling</h1>
-    <p>Generate a new guard roster from CSV files (previous roster + soldiers list).</p>
+    <p>יצירת סידור שמירות חדש מקובצי CSV (רוסטר קודם + רשימת חיילים).</p>
   </header>
 
   <main class="app-main">
@@ -27,49 +27,49 @@
         id="manual-link"
         class="secondary-btn"
       >
-        Manual input (create CSVs)
+        קלט ידני (יצירת קובצי CSV)
       </a>
     </div>
 
     <section class="card">
-      <h2>CSV Inputs</h2>
+      <h2>קובצי קלט (CSV)</h2>
       <div class="field-group">
-        <label for="previous-roster-input">Previous roster CSV</label>
+        <label for="previous-roster-input">קובץ רוסטר קודם (CSV)</label>
         <input type="file" id="previous-roster-input" accept=".csv,text/csv" />
         <div id="previous-roster-summary" class="summary-text"></div>
       </div>
 
       <div class="field-group">
-        <label for="soldiers-input">Soldiers list CSV</label>
+        <label for="soldiers-input">קובץ רשימת חיילים (CSV)</label>
         <input type="file" id="soldiers-input" accept=".csv,text/csv" />
         <div id="soldiers-summary" class="summary-text"></div>
       </div>
     </section>
 
     <section class="card">
-      <h2>Configuration</h2>
+      <h2>הגדרות</h2>
       <div class="field-row">
         <div class="field-group">
-          <label for="min-rest-hours">Minimum rest hours</label>
+          <label for="min-rest-hours">מספר שעות מנוחה מינימלי</label>
           <input type="number" id="min-rest-hours" min="0" step="2" value="6" />
-          <div class="summary-text">2-hour intervals only (e.g. 6, 8)</div>
+          <div class="summary-text">רק במרווחים של שעתיים (לדוגמה: 6, 8)</div>
         </div>
         <div class="field-group">
-          <label for="max-shifts-per-soldier">Max shifts per soldier (optional)</label>
+          <label for="max-shifts-per-soldier">מספר משמרות מקסימלי לחייל (לא חובה)</label>
           <input type="number" id="max-shifts-per-soldier" min="1" step="1" />
         </div>
         <div class="field-group">
-          <label for="random-seed">Random seed (optional)</label>
-          <input type="text" id="random-seed" placeholder="Leave empty for current time" />
+          <label for="random-seed">Seed אקראי (לא חובה)</label>
+          <input type="text" id="random-seed" placeholder="השאר ריק לשימוש בזמן הנוכחי" />
         </div>
       </div>
 
       <hr />
 
-      <h3>Joker configuration</h3>
+      <h3>הגדרת ג'וקרים</h3>
       <p class="summary-text">
-        Define special Joker soldiers that occupy a specific position and time range.
-        Jokers are assigned manually only and block that position for the selected interval.
+        הגדר חיילי ג'וקר שתופסים עמדה ושעות שמירה ספציפיות.
+        ג'וקרים משובצים ידנית בלבד וחוסמים את העמדה למשך הטווח שנבחר.
       </p>
 
       <div class="collapsible-section">
@@ -78,7 +78,7 @@
           class="secondary-btn collapsible-toggle"
           type="button"
         >
-          Add Joker
+          הוסף ג'וקר
         </button>
 
         <div
@@ -88,13 +88,13 @@
         >
           <div class="field-row">
             <div class="field-group">
-              <label for="joker-name">Joker Name</label>
+              <label for="joker-name">שם הג'וקר</label>
               <input type="text" id="joker-name" />
             </div>
             <div class="field-group">
-              <label for="joker-position">Position</label>
+              <label for="joker-position">עמדה</label>
               <select id="joker-position">
-                <option value="">Select</option>
+                <option value="">בחר</option>
                 <option value="משטח">משטח</option>
                 <option value="ש.ג. אחורי">ש.ג. אחורי</option>
               </select>
@@ -103,13 +103,13 @@
 
           <div class="field-row">
             <div class="field-group">
-              <label for="joker-start-date">Start Date</label>
+              <label for="joker-start-date">תאריך התחלה</label>
               <input type="date" id="joker-start-date" />
             </div>
             <div class="field-group">
-              <label for="joker-start-time">Start Time</label>
+              <label for="joker-start-time">שעת התחלה</label>
               <select id="joker-start-time">
-                <option value="">Select</option>
+                <option value="">בחר</option>
                 <option value="00:00">00:00</option>
                 <option value="02:00">02:00</option>
                 <option value="04:00">04:00</option>
@@ -125,13 +125,13 @@
               </select>
             </div>
             <div class="field-group">
-              <label for="joker-end-date">End Date</label>
+              <label for="joker-end-date">תאריך סיום</label>
               <input type="date" id="joker-end-date" />
             </div>
             <div class="field-group">
-              <label for="joker-end-time">End Time</label>
+              <label for="joker-end-time">שעת סיום</label>
               <select id="joker-end-time">
-                <option value="">Select</option>
+                <option value="">בחר</option>
                 <option value="00:00">00:00</option>
                 <option value="02:00">02:00</option>
                 <option value="04:00">04:00</option>
@@ -149,7 +149,7 @@
             <div class="field-group">
               <label>&nbsp;</label>
               <button id="add-joker-btn" class="secondary-btn" type="button">
-                Add Joker
+                הוסף ג'וקר
               </button>
             </div>
           </div>
@@ -158,11 +158,11 @@
             <table id="joker-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Position</th>
-                  <th>Start</th>
-                  <th>End</th>
-                  <th>Actions</th>
+                  <th>שם</th>
+                  <th>עמדה</th>
+                  <th>תחילה</th>
+                  <th>סיום</th>
+                  <th>פעולות</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,12 +173,12 @@
       </div>
 
       <button id="generate-roster-btn" class="primary-btn">
-        Generate New Roster
+        יצירת סידור שמירות חדש
       </button>
     </section>
 
     <section class="card">
-      <h2>Result</h2>
+      <h2>תוצאה</h2>
       <div id="error-box" class="error-box" aria-live="polite"></div>
       <div class="table-wrapper">
         <table id="roster-table">
@@ -196,14 +196,14 @@
         </table>
       </div>
       <button id="export-roster-btn" class="secondary-btn" disabled>
-        Export roster_new.csv
+        ייצוא הקובץ roster_new.csv
       </button>
       <button
         id="export-roster-whatsapp-btn"
         class="secondary-btn"
         disabled
       >
-        Copy WhatsApp text
+        העתקת טקסט לוואטסאפ
       </button>
     </section>
   </main>

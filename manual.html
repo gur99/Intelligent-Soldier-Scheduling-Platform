@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="he">
+<html lang="he" dir="rtl">
 <head>
   <link rel="icon" type="image/png" href="./icon/icon.png">
   <link rel="shortcut icon" href="./icon/icon.png">
@@ -12,21 +12,21 @@
   <meta name="theme-color" content="#0f172a">
 
   <meta charset="UTF-8" />
-  <title>Manual Input – Intelligent Soldier Scheduling</title>
+  <title>Intelligent Soldier Scheduling – קלט ידני</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="./css/styles.css" />
 </head>
 <body>
   <header class="app-header">
-    <h1>Intelligent Soldier Scheduling - Manual Input</h1>
-    <nav>
-      <a href="index.html" id="back-to-main-btn" class="primary-btn">
-        Back to generator
-      </a>
-    </nav>
+    <h1>Intelligent Soldier Scheduling – קלט ידני</h1>
   </header>
 
   <main class="app-main">
+    <div class="button-row">
+      <a href="index.html" id="back-to-main-btn" class="secondary-btn">
+        חזרה למחולל השמירות
+      </a>
+    </div>
     <section class="tabs">
       <button class="tab-btn active" data-tab="soldiers-tab">רשימת חיילים ידנית</button>
       <button class="tab-btn" data-tab="previous-roster-tab">רוסטר קודם ידני</button>
@@ -40,7 +40,13 @@
       <section id="soldier-groups-builder" class="groups-builder">
         <div class="group-section" data-group="A">
           <header class="group-header group-a-header">
-            <h3>A קבוצה</h3>
+            <h3>א קבוצה</h3>
+            <div class="group-switch-wrap">
+              <button type="button" class="secondary-btn group-switch-btn" data-group="A" aria-haspopup="true" aria-expanded="false">
+                החלף קבוצה
+              </button>
+              <div class="group-switch-dropdown" id="group-switch-dropdown-A" hidden></div>
+            </div>
           </header>
           <div class="group-body">
             <div class="group-rows" id="group-A-rows"></div>
@@ -54,7 +60,13 @@
 
         <div class="group-section" data-group="B">
           <header class="group-header group-b-header">
-            <h3>B קבוצה</h3>
+            <h3>ב קבוצה</h3>
+            <div class="group-switch-wrap">
+              <button type="button" class="secondary-btn group-switch-btn" data-group="B" aria-haspopup="true" aria-expanded="false">
+                החלף קבוצה
+              </button>
+              <div class="group-switch-dropdown" id="group-switch-dropdown-B" hidden></div>
+            </div>
           </header>
           <div class="group-body">
             <div class="group-rows" id="group-B-rows"></div>
@@ -68,7 +80,13 @@
 
         <div class="group-section" data-group="C">
           <header class="group-header group-c-header">
-            <h3>C קבוצה</h3>
+            <h3>ג קבוצה</h3>
+            <div class="group-switch-wrap">
+              <button type="button" class="secondary-btn group-switch-btn" data-group="C" aria-haspopup="true" aria-expanded="false">
+                החלף קבוצה
+              </button>
+              <div class="group-switch-dropdown" id="group-switch-dropdown-C" hidden></div>
+            </div>
           </header>
           <div class="group-body">
             <div class="group-rows" id="group-C-rows"></div>
@@ -85,12 +103,12 @@
         <table id="soldiers-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Group</th>
-              <th>Commander</th>
-              <th>Returned today</th>
-              <th>Actions</th>
+              <th>מזהה</th>
+              <th>שם</th>
+              <th>קבוצה</th>
+              <th>מפקד</th>
+              <th>חזר היום מהבית</th>
+              <th>פעולות</th>
             </tr>
           </thead>
           <tbody>
@@ -99,16 +117,16 @@
       </div>
 
       <div class="button-row">
-        <button id="export-soldiers-btn" class="secondary-btn">Export Soldiers CSV</button>
-        <button id="clear-soldiers-btn" class="danger-btn">Clear All</button>
+        <button id="export-soldiers-btn" class="secondary-btn">ייצוא רשימת חיילים (CSV)</button>
+        <button id="clear-soldiers-btn" class="danger-btn">נקה הכל</button>
       </div>
     </section>
 
     <section id="previous-roster-tab" class="card tab-content">
-      <h2>רוסטר קודם ידני</h2>
+      <h2>רשימת שמירות קודמת- מילוי ידני</h2>
       <form id="previous-roster-form" class="form-grid">
         <div class="field-group">
-          <label for="pr-date">Start date (Day D)</label>
+          <label for="pr-date">תאריך תחילת שמירות (של רשימה קודמת)</label>
           <input type="date" id="pr-date" required />
         </div>
       </form>
@@ -117,11 +135,11 @@
         <table id="previous-roster-table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Start</th>
-              <th>End</th>
-              <th>Position</th>
-              <th>Name</th>
+              <th>תאריך</th>
+              <th>תחילת שמירה</th>
+              <th>סיום שמירה</th>
+              <th>עמדה</th>
+              <th>שומר</th>
             </tr>
           </thead>
           <tbody>
@@ -130,8 +148,8 @@
       </div>
 
       <div class="button-row">
-        <button id="export-previous-roster-btn" class="secondary-btn" disabled>Export Previous Roster CSV</button>
-        <button id="clear-previous-roster-btn" class="danger-btn">Clear All</button>
+        <button id="export-previous-roster-btn" class="secondary-btn" disabled>ייצוא רשימת שמירות קודמת (CSV)</button>
+        <button id="clear-previous-roster-btn" class="danger-btn">נקה הכל</button>
       </div>
     </section>
   </main>

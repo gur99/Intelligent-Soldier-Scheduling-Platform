@@ -136,8 +136,8 @@ function renderSoldiersTable() {
   tbody.innerHTML = "";
   manualSoldiers.forEach((s, index) => {
     const tr = document.createElement("tr");
-    const commanderText = s.isCommander ? "Yes" : "";
-    const returnedText = s.returnedToday ? "Yes" : "";
+    const commanderText = s.isCommander ? "כן" : "";
+    const returnedText = s.returnedToday ? "כן" : "";
 
     const cells = [
       s.id,
@@ -155,7 +155,7 @@ function renderSoldiersTable() {
     const actionsTd = document.createElement("td");
     if (!s.isCommander) {
       const delBtn = document.createElement("button");
-      delBtn.textContent = "Delete";
+      delBtn.textContent = "מחק";
       delBtn.className = "danger-btn";
       delBtn.addEventListener("click", () => {
         manualSoldiers.splice(index, 1);
@@ -172,6 +172,20 @@ function renderSoldiersTable() {
 }
 
 const GROUP_IDS = ["A", "B", "C"];
+
+function swapGroups(groupA, groupB) {
+  if (groupA === groupB) return;
+  manualSoldiers.forEach((s) => {
+    if (s.group === groupA) {
+      s.group = groupB;
+    } else if (s.group === groupB) {
+      s.group = groupA;
+    }
+  });
+  saveSoldiers();
+  renderSoldierGroups();
+  renderSoldiersTable();
+}
 
 function getNextSoldierId() {
   let max = 0;
@@ -497,6 +511,51 @@ function setupSoldiersUI() {
     }
   });
 
+  // Group switch: open dropdown with other groups; selecting one swaps the two groups
+  document.querySelectorAll(".group-switch-btn").forEach((btn) => {
+    const sourceGroup = btn.getAttribute("data-group");
+    const dropdown = document.getElementById(`group-switch-dropdown-${sourceGroup}`);
+    if (!dropdown) return;
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = !dropdown.hidden;
+      document.querySelectorAll(".group-switch-dropdown").forEach((d) => {
+        d.hidden = true;
+      });
+      document.querySelectorAll(".group-switch-btn").forEach((b) => {
+        b.setAttribute("aria-expanded", "false");
+      });
+      if (!isOpen) {
+        dropdown.innerHTML = "";
+        const otherGroups = GROUP_IDS.filter((g) => g !== sourceGroup);
+        otherGroups.forEach((targetGroup) => {
+          const option = document.createElement("button");
+          option.type = "button";
+          option.textContent = `החלף עם קבוצה ${targetGroup}`;
+          option.addEventListener("click", (e) => {
+            e.stopPropagation();
+            swapGroups(sourceGroup, targetGroup);
+            dropdown.hidden = true;
+            btn.setAttribute("aria-expanded", "false");
+          });
+          dropdown.appendChild(option);
+        });
+        dropdown.hidden = false;
+        btn.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
+
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".group-switch-dropdown").forEach((d) => {
+      d.hidden = true;
+    });
+    document.querySelectorAll(".group-switch-btn").forEach((b) => {
+      b.setAttribute("aria-expanded", "false");
+    });
+  });
+
   const exportBtn = document.getElementById("export-soldiers-btn");
   if (exportBtn) {
     exportBtn.addEventListener("click", (e) => {
@@ -561,7 +620,7 @@ function setupPreviousRosterForm() {
     exportBtn.addEventListener("click", (e) => {
       e.preventDefault();
       if (!isPreviousRosterComplete()) {
-        alert("You must fill all 24 names to export the previous roster CSV.");
+        alert("יש למלא את כל 24 השמות לפני ייצוא רשימת השמירות הקודמת.");
         return;
       }
       const rows = buildPreviousRosterRows();
