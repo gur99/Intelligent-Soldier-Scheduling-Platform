@@ -140,7 +140,6 @@ function renderSoldiersTable() {
     const returnedText = s.returnedToday ? "כן" : "";
 
     const cells = [
-      s.id,
       s.name,
       s.group,
       commanderText,
@@ -319,9 +318,9 @@ function renderSoldierGroups() {
           renderSoldiersTable();
         }
       });
-      returnedLabel.appendChild(returnedCheckbox);
-      const returnedText = document.createTextNode(" חזר היום מהבית");
-      returnedLabel.appendChild(returnedText);
+  returnedLabel.appendChild(returnedCheckbox);
+  const returnedText = document.createTextNode(" חוזר מהבית");
+  returnedLabel.appendChild(returnedText);
       returnedWrapper.appendChild(returnedLabel);
       row.appendChild(returnedWrapper);
 
