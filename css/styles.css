@@ -162,6 +162,24 @@ td {
   text-align: left;
 }
 
+#roster-table {
+  direction: rtl;
+}
+
+#roster-table th,
+#roster-table td {
+  text-align: right;
+}
+
+#previous-roster-table {
+  direction: rtl;
+}
+
+#previous-roster-table th,
+#previous-roster-table td {
+  text-align: right;
+}
+
 .roster-name-cell {
   direction: rtl;
   text-align: right;
@@ -292,7 +310,7 @@ tr:nth-child(even) {
 
 .soldier-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto auto auto auto;
   gap: 0.4rem;
   align-items: center;
   padding: 0.35rem 0.4rem;
@@ -332,7 +350,8 @@ tr:nth-child(even) {
 }
 
 .soldier-name-input {
-  width: 100%;
+  width: 15ch;
+  max-width: 100%;
   padding: 0.3rem 0.4rem;
   border-radius: 4px;
   border: 1px solid #cbd2dd;

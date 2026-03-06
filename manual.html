@@ -29,7 +29,7 @@
     </div>
     <section class="tabs">
       <button class="tab-btn active" data-tab="soldiers-tab">רשימת חיילים ידנית</button>
-      <button class="tab-btn" data-tab="previous-roster-tab">רוסטר קודם ידני</button>
+      <button class="tab-btn" data-tab="previous-roster-tab">רשמית שמירות קודמת ידני</button>
     </section>
 
     <section id="soldiers-tab" class="card tab-content active">
@@ -100,14 +100,13 @@
       </section>
 
       <div class="table-wrapper">
-        <table id="soldiers-table">
+        <table id="soldiers-table" dir="rtl">
           <thead>
             <tr>
-              <th>מזהה</th>
               <th>שם</th>
               <th>קבוצה</th>
               <th>מפקד</th>
-              <th>חזר היום מהבית</th>
+              <th>חוזר מהבית</th>
               <th>פעולות</th>
             </tr>
           </thead>
@@ -132,7 +131,7 @@
       </form>
 
       <div class="table-wrapper">
-        <table id="previous-roster-table">
+        <table id="previous-roster-table" dir="rtl">
           <thead>
             <tr>
               <th>תאריך</th>
