@@ -97,6 +97,29 @@ export function generateRoster(previousRosterEntries, soldiers, config) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "X-Debug-Session-Id": "2dac1a",
+    },
+    body: JSON.stringify({
+      sessionId: "2dac1a",
+      runId: "investigation",
+      hypothesisId: "H2",
+      location: "rosterGenerator.js:generateRoster:effectiveConfig",
+      message: "Effective config for roster generation",
+      data: {
+        minRestHours: effectiveConfig.minRestHours,
+        maxShiftsPerSoldier: effectiveConfig.maxShiftsPerSoldier,
+        randomSeedProvided: !!config?.randomSeed,
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+
+  // #region agent log
+  fetch("http://127.0.0.1:7738/ingest/aab376bd-c80a-4bf8-87c6-09b902716456", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
       "X-Debug-Session-Id": "b82c1e",
     },
     body: JSON.stringify({
@@ -115,7 +138,10 @@ export function generateRoster(previousRosterEntries, soldiers, config) {
 
   const rng = createSeededRNG(effectiveConfig.randomSeed);
 
-  const context = buildEligibilityContext(previousRosterEntries || []);
+  const context = buildEligibilityContext(
+    previousRosterEntries || [],
+    soldiers || []
+  );
   let rosterDay = context.windowDay;
 
   if (!rosterDay) {
