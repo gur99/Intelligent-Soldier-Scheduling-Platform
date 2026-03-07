@@ -77,3 +77,39 @@ export function normalizeBoolean(value) {
   return truthy.includes(s);
 }
 
+/**
+ * Parse CSV or TSV: delimiter is tab if first line contains a tab, otherwise comma.
+ * Returns same shape as parseCSV: { rows: [{ columns, lineNumber }], errors, headersMap }.
+ */
+export function parseCSVOrTSV(text) {
+  const errors = [];
+  if (!text || !String(text).trim()) {
+    return { rows: [], errors: ["Empty file"], headersMap: {} };
+  }
+  const lines = String(text)
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .filter((l) => l.trim().length > 0);
+  if (lines.length === 0) {
+    return { rows: [], errors: ["No data lines found"], headersMap: {} };
+  }
+  const headerLine = lines[0];
+  const delimiter = headerLine.includes("\t") ? "\t" : ",";
+  const headers = headerLine.split(delimiter).map((h) => h.trim());
+  const headersMap = {};
+  headers.forEach((h, idx) => {
+    const key = normalizeHeader(h);
+    if (!(key in headersMap)) {
+      headersMap[key] = idx;
+    }
+  });
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    const columns = line.split(delimiter).map((c) => c.trim());
+    rows.push({ columns, lineNumber: i + 1 });
+  }
+  return { rows, errors, headersMap };
+}
+

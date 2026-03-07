@@ -68,8 +68,7 @@
 
       <h3>הגדרת ג'וקרים</h3>
       <p class="summary-text">
-        הגדר חיילי ג'וקר שתופסים עמדה ושעות שמירה ספציפיות.
-        ג'וקרים משובצים ידנית בלבד וחוסמים את העמדה למשך הטווח שנבחר.
+        הגדר חיילי ג'וקר: קבוע (טווח תאריך/שעה) או אקראי (שם, עמדה ומספר שעות – ישובץ אקראי ברשימה).
       </p>
 
       <div class="collapsible-section">
@@ -86,71 +85,125 @@
           class="collapsible-body"
           style="display: none;"
         >
+          <h4 style="margin-top: 0;">ג'וקר אקראי (שיבוץ לפי עמדה ומספר שעות)</h4>
           <div class="field-row">
             <div class="field-group">
-              <label for="joker-name">שם הג'וקר</label>
-              <input type="text" id="joker-name" />
+              <label for="joker-random-name">שם הג'וקר</label>
+              <input type="text" id="joker-random-name" />
             </div>
             <div class="field-group">
-              <label for="joker-position">עמדה</label>
-              <select id="joker-position">
+              <label for="joker-random-position">עמדה</label>
+              <select id="joker-random-position">
                 <option value="">בחר</option>
                 <option value="משטח">משטח</option>
                 <option value="ש.ג. אחורי">ש.ג. אחורי</option>
               </select>
             </div>
-          </div>
-
-          <div class="field-row">
             <div class="field-group">
-              <label for="joker-start-date">תאריך התחלה</label>
-              <input type="date" id="joker-start-date" />
-            </div>
-            <div class="field-group">
-              <label for="joker-start-time">שעת התחלה</label>
-              <select id="joker-start-time">
-                <option value="">בחר</option>
-                <option value="00:00">00:00</option>
-                <option value="02:00">02:00</option>
-                <option value="04:00">04:00</option>
-                <option value="06:00">06:00</option>
-                <option value="08:00">08:00</option>
-                <option value="10:00">10:00</option>
-                <option value="12:00">12:00</option>
-                <option value="14:00">14:00</option>
-                <option value="16:00">16:00</option>
-                <option value="18:00">18:00</option>
-                <option value="20:00">20:00</option>
-                <option value="22:00">22:00</option>
-              </select>
-            </div>
-            <div class="field-group">
-              <label for="joker-end-date">תאריך סיום</label>
-              <input type="date" id="joker-end-date" />
-            </div>
-            <div class="field-group">
-              <label for="joker-end-time">שעת סיום</label>
-              <select id="joker-end-time">
-                <option value="">בחר</option>
-                <option value="00:00">00:00</option>
-                <option value="02:00">02:00</option>
-                <option value="04:00">04:00</option>
-                <option value="06:00">06:00</option>
-                <option value="08:00">08:00</option>
-                <option value="10:00">10:00</option>
-                <option value="12:00">12:00</option>
-                <option value="14:00">14:00</option>
-                <option value="16:00">16:00</option>
-                <option value="18:00">18:00</option>
-                <option value="20:00">20:00</option>
-                <option value="22:00">22:00</option>
+              <label for="joker-random-hours">מספר שעות</label>
+              <select id="joker-random-hours">
+                <option value="2">2</option>
+                <option value="4">4</option>
+                <option value="6">6</option>
+                <option value="8">8</option>
+                <option value="10">10</option>
+                <option value="12">12</option>
+                <option value="14">14</option>
+                <option value="16">16</option>
+                <option value="18">18</option>
+                <option value="20">20</option>
+                <option value="22">22</option>
+                <option value="24">24</option>
               </select>
             </div>
             <div class="field-group">
               <label>&nbsp;</label>
-              <button id="add-joker-btn" class="secondary-btn" type="button">
-                הוסף ג'וקר
+              <button id="add-joker-random-btn" class="secondary-btn" type="button">
+                הוסף ג'וקר אקראי
               </button>
+            </div>
+          </div>
+
+          <div class="collapsible-section" style="margin-top: 1rem;">
+            <button
+              id="toggle-fixed-joker-section"
+              class="secondary-btn collapsible-toggle"
+              type="button"
+            >
+              הצג ג'וקר קבוע (טווח שעות)
+            </button>
+            <div
+              id="fixed-joker-section-body"
+              class="collapsible-body"
+              style="display: none;"
+            >
+              <h4 style="margin-top: 0.5rem;">ג'וקר קבוע (טווח שעות)</h4>
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="joker-name">שם הג'וקר</label>
+                  <input type="text" id="joker-name" />
+                </div>
+                <div class="field-group">
+                  <label for="joker-position">עמדה</label>
+                  <select id="joker-position">
+                    <option value="">בחר</option>
+                    <option value="משטח">משטח</option>
+                    <option value="ש.ג. אחורי">ש.ג. אחורי</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="joker-start-date">תאריך התחלה</label>
+                  <input type="date" id="joker-start-date" />
+                </div>
+                <div class="field-group">
+                  <label for="joker-start-time">שעת התחלה</label>
+                  <select id="joker-start-time">
+                    <option value="">בחר</option>
+                    <option value="00:00">00:00</option>
+                    <option value="02:00">02:00</option>
+                    <option value="04:00">04:00</option>
+                    <option value="06:00">06:00</option>
+                    <option value="08:00">08:00</option>
+                    <option value="10:00">10:00</option>
+                    <option value="12:00">12:00</option>
+                    <option value="14:00">14:00</option>
+                    <option value="16:00">16:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="20:00">20:00</option>
+                    <option value="22:00">22:00</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label for="joker-end-date">תאריך סיום</label>
+                  <input type="date" id="joker-end-date" />
+                </div>
+                <div class="field-group">
+                  <label for="joker-end-time">שעת סיום</label>
+                  <select id="joker-end-time">
+                    <option value="">בחר</option>
+                    <option value="00:00">00:00</option>
+                    <option value="02:00">02:00</option>
+                    <option value="04:00">04:00</option>
+                    <option value="06:00">06:00</option>
+                    <option value="08:00">08:00</option>
+                    <option value="10:00">10:00</option>
+                    <option value="12:00">12:00</option>
+                    <option value="14:00">14:00</option>
+                    <option value="16:00">16:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="20:00">20:00</option>
+                    <option value="22:00">22:00</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label>&nbsp;</label>
+                  <button id="add-joker-btn" class="secondary-btn" type="button">
+                    הוסף ג'וקר קבוע
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -160,8 +213,8 @@
                 <tr>
                   <th>שם</th>
                   <th>עמדה</th>
-                  <th>תחילה</th>
-                  <th>סיום</th>
+                  <th>סוג</th>
+                  <th>פרטים</th>
                   <th>פעולות</th>
                 </tr>
               </thead>

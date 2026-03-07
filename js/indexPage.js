@@ -105,11 +105,14 @@ function renderJokerTable() {
 
   jokerConfigs.forEach((j, index) => {
     const tr = document.createElement("tr");
+    const isRandom = j.type === "random";
+    const typeLabel = isRandom ? "אקראי" : "קבוע";
+    const details =
+      isRandom
+        ? (j.hours ? `${j.hours} שעות` : "–")
+        : `${j.startDate || ""} ${j.startTime || ""} – ${j.endDate || ""} ${j.endTime || ""}`;
 
-    const startLabel = `${j.startDate} ${j.startTime}`;
-    const endLabel = `${j.endDate} ${j.endTime}`;
-
-    const cells = [j.name, j.position, startLabel, endLabel];
+    const cells = [j.name, j.position, typeLabel, details];
     for (const val of cells) {
       const td = document.createElement("td");
       td.textContent = val;
@@ -118,7 +121,7 @@ function renderJokerTable() {
 
     const actionsTd = document.createElement("td");
     const delBtn = document.createElement("button");
-    delBtn.textContent = "Delete";
+    delBtn.textContent = "מחק";
     delBtn.className = "danger-btn";
     delBtn.addEventListener("click", () => {
       jokerConfigs.splice(index, 1);
@@ -677,10 +680,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (isHidden) {
         jokerSectionBody.style.display = "block";
-        toggleJokerSectionBtn.textContent = "Hide Joker options";
+        toggleJokerSectionBtn.textContent = "הסתר אפשרויות ג'וקר";
       } else {
         jokerSectionBody.style.display = "none";
-        toggleJokerSectionBtn.textContent = "Add Joker";
+        toggleJokerSectionBtn.textContent = "הוסף ג'וקר";
+      }
+    });
+  }
+
+  const toggleFixedJokerBtn = document.getElementById("toggle-fixed-joker-section");
+  const fixedJokerSectionBody = document.getElementById("fixed-joker-section-body");
+  if (toggleFixedJokerBtn && fixedJokerSectionBody) {
+    fixedJokerSectionBody.style.display = "none";
+    toggleFixedJokerBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const isHidden =
+        fixedJokerSectionBody.style.display === "none" ||
+        fixedJokerSectionBody.style.display === "";
+      if (isHidden) {
+        fixedJokerSectionBody.style.display = "block";
+        toggleFixedJokerBtn.textContent = "הסתר ג'וקר קבוע (טווח שעות)";
+      } else {
+        fixedJokerSectionBody.style.display = "none";
+        toggleFixedJokerBtn.textContent = "הצג ג'וקר קבוע (טווח שעות)";
       }
     });
   }
@@ -723,6 +745,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setError("");
 
       jokerConfigs.push({
+        type: "fixed",
         name,
         position,
         startDate,
@@ -761,6 +784,43 @@ document.addEventListener("DOMContentLoaded", () => {
       startTimeInput.value = "";
       endDateInput.value = "";
       endTimeInput.value = "";
+    });
+  }
+
+  const addJokerRandomBtn = document.getElementById("add-joker-random-btn");
+  if (addJokerRandomBtn) {
+    addJokerRandomBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const nameInput = document.getElementById("joker-random-name");
+      const positionSelect = document.getElementById("joker-random-position");
+      const hoursSelect = document.getElementById("joker-random-hours");
+      const name = nameInput && nameInput.value ? nameInput.value.trim() : "";
+      const positionRaw = positionSelect && positionSelect.value ? positionSelect.value : "";
+      const hours = hoursSelect && hoursSelect.value ? parseInt(hoursSelect.value, 10) : 2;
+
+      if (!name || !positionRaw) {
+        setError("יש למלא שם ועמדה לג'וקר אקראי.");
+        return;
+      }
+      let position;
+      if (positionRaw === POSITION_MESHETACH) {
+        position = POSITION_MESHETACH;
+      } else if (positionRaw === POSITION_SHG_AHORI) {
+        position = POSITION_SHG_AHORI;
+      } else {
+        setError("עמדה לא תקינה.");
+        return;
+      }
+      setError("");
+      jokerConfigs.push({
+        type: "random",
+        name,
+        position,
+        hours: Number.isFinite(hours) && hours >= 2 ? Math.min(24, Math.max(2, hours)) : 2,
+      });
+      renderJokerTable();
+      if (nameInput) nameInput.value = "";
+      if (positionSelect) positionSelect.value = "";
     });
   }
 
