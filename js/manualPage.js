@@ -1,4 +1,4 @@
-import { toCSV, downloadCSV } from "./csvUtils.js";
+import { toCSV, downloadCSV, parseCSVOrTSV, normalizeBoolean } from "./csvUtils.js";
 
 const SOLDIERS_STORAGE_KEY = "iss_manual_soldiers";
 const PREVIOUS_ROSTER_STORAGE_KEY = "iss_manual_previous_roster";
@@ -79,6 +79,131 @@ function updatePreviousRosterExportButtonState() {
   const exportBtn = document.getElementById("export-previous-roster-btn");
   if (!exportBtn) return;
   exportBtn.disabled = !isPreviousRosterComplete();
+}
+
+/**
+ * Normalize time string to "HH:MM" for comparison.
+ */
+function normalizeTime(t) {
+  if (!t || typeof t !== "string") return "";
+  const parts = t.trim().split(":");
+  const h = parseInt(parts[0], 10);
+  const m = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+  if (!Number.isFinite(h)) return "";
+  return `${String(h).padStart(2, "0")}:${String(Number.isFinite(m) ? m : 0).padStart(2, "0")}`;
+}
+
+/**
+ * Parse WhatsApp watchlist format and return array of 24 names (same order as previousRosterNames).
+ * Format: time line "10:00–12:00", then "משטח: NAME", then "ש.ג אחורי: NAME" (or "ש.ג. אחורי").
+ */
+function parseWhatsAppWatchlist(text) {
+  const result = new Array(PREVIOUS_ROSTER_TOTAL_ROWS).fill("");
+  if (!text || typeof text !== "string") return result;
+
+  const lines = text.split(/\r?\n/).map((l) => l.trim());
+  let i = 0;
+  while (i < lines.length) {
+    const timeMatch = lines[i].match(/^(\d{1,2}:\d{2})\s*[–\-]\s*(\d{1,2}:\d{2})$/);
+    if (timeMatch) {
+      const startTime = normalizeTime(timeMatch[1]);
+      const blockIndex = PREVIOUS_ROSTER_TIME_BLOCKS.findIndex(
+        ([s]) => normalizeTime(s) === startTime
+      );
+      if (blockIndex >= 0 && i + 2 < lines.length) {
+        const line1 = lines[i + 1];
+        const line2 = lines[i + 2];
+        const matchMishat = line1.match(/משטח\s*:\s*(.+)/);
+        const matchShg = line2.match(/ש\.ג\.?\s*אחורי\s*:\s*(.+)/);
+        const nameMishat = matchMishat ? matchMishat[1].trim() : "";
+        const nameShg = matchShg ? matchShg[1].trim() : "";
+        result[blockIndex * 2] = nameMishat;
+        result[blockIndex * 2 + 1] = nameShg;
+        i += 3;
+        continue;
+      }
+    }
+    i++;
+  }
+  return result;
+}
+
+function setupPreviousRosterForm() {
+  const whatsappImportBtn = document.getElementById("whatsapp-import-btn");
+  const whatsappPaste = document.getElementById("whatsapp-paste");
+  const whatsappMessage = document.getElementById("whatsapp-import-message");
+
+  if (whatsappImportBtn && whatsappPaste) {
+    whatsappImportBtn.addEventListener("click", () => {
+      const text = whatsappPaste.value || "";
+      const names = parseWhatsAppWatchlist(text);
+      const filled = names.filter((n) => n.length > 0).length;
+      previousRosterNames = names.slice(0, PREVIOUS_ROSTER_TOTAL_ROWS);
+      while (previousRosterNames.length < PREVIOUS_ROSTER_TOTAL_ROWS) {
+        previousRosterNames.push("");
+      }
+      savePreviousRoster();
+      renderPreviousRosterTable();
+      updatePreviousRosterExportButtonState();
+      if (whatsappMessage) {
+        whatsappMessage.textContent =
+          filled > 0
+            ? `יובאו ${filled} שמות לרשימה. נא לוודא תאריך ולהשלים ריקים אם צריך.`
+            : "לא זוהו שמות בפורמט וואטסאפ. נא להדביק רשימה עם שעות ומשטח/ש.ג אחורי.";
+        whatsappMessage.className = "import-message " + (filled > 0 ? "import-success" : "import-warning");
+      }
+    });
+  }
+
+  const dateInput = document.getElementById("pr-date");
+  if (dateInput) {
+    dateInput.addEventListener("change", () => {
+      previousRosterStartDate = dateInput.value || "";
+      savePreviousRoster();
+      renderPreviousRosterTable();
+      updatePreviousRosterExportButtonState();
+    });
+  }
+
+  const exportBtn = document.getElementById(
+    "export-previous-roster-btn"
+  );
+  if (exportBtn) {
+    exportBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (!isPreviousRosterComplete()) {
+        alert("יש למלא את כל 24 השמות לפני ייצוא רשימת השמירות הקודמת.");
+        return;
+      }
+      const rows = buildPreviousRosterRows();
+      const headers = [
+        "date",
+        "start_time",
+        "end_time",
+        "position",
+        "name",
+      ];
+      const csvText = toCSV(headers, rows);
+      downloadCSV("previous_roster.csv", csvText);
+    });
+  }
+
+  const clearBtn = document.getElementById(
+    "clear-previous-roster-btn"
+  );
+  if (clearBtn) {
+    clearBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      previousRosterStartDate = "";
+      previousRosterNames = new Array(PREVIOUS_ROSTER_TOTAL_ROWS).fill("");
+      manualPreviousRoster = [];
+      savePreviousRoster();
+      renderPreviousRosterTable();
+      updatePreviousRosterExportButtonState();
+    });
+  }
+
+  updatePreviousRosterExportButtonState();
 }
 
 function loadFromStorage() {
@@ -195,6 +320,53 @@ function getNextSoldierId() {
     }
   }
   return "S" + (max + 1);
+}
+
+/**
+ * Parse CSV/TSV text into soldier list. Expects columns: id, name, group, is_commander, returned_from_home_today.
+ * Returns { soldiers, error }. Soldiers are assigned to groups and "returned from home" is set from the file.
+ */
+function parseSoldiersFromCSVOrTSV(text) {
+  const { rows, errors, headersMap } = parseCSVOrTSV(text);
+  if (errors.length > 0 || rows.length === 0) {
+    return {
+      soldiers: [],
+      error: errors.length > 0 ? errors[0] : "לא נמצאו שורות נתונים בקובץ.",
+    };
+  }
+  const idxId = headersMap.id;
+  const idxName = headersMap.name;
+  const idxGroup = headersMap.group;
+  const idxCommander = headersMap.is_commander;
+  const idxReturned = headersMap.returned_from_home_today;
+  if (idxName === undefined) {
+    return { soldiers: [], error: "חסרה עמודת 'name' בקובץ." };
+  }
+  const soldiers = [];
+  let nextId = 1;
+  for (let i = 0; i < rows.length; i++) {
+    const { columns } = rows[i];
+    const name = idxName !== undefined ? (columns[idxName] || "").trim() : "";
+    const groupRaw = idxGroup !== undefined ? (columns[idxGroup] || "").trim().toUpperCase() : "";
+    const groupChar = groupRaw.charAt(0);
+    const group = GROUP_IDS.includes(groupChar) ? groupChar : "A";
+    const id = idxId !== undefined && columns[idxId] ? String(columns[idxId]).trim() : "";
+    const soldierId = id || "S" + nextId++;
+    const isCommander = normalizeBoolean(
+      idxCommander !== undefined ? columns[idxCommander] : ""
+    );
+    const returnedToday = normalizeBoolean(
+      idxReturned !== undefined ? columns[idxReturned] : ""
+    );
+    soldiers.push({
+      id: soldierId,
+      name,
+      group,
+      isCommander: !!isCommander,
+      returnedToday: !!returnedToday,
+    });
+  }
+  return { soldiers, error: null };
 }
 
 function buildDefaultSoldiers() {
@@ -481,6 +653,49 @@ function setupSoldiersUI() {
   const builder = document.getElementById("soldier-groups-builder");
   if (!builder) return;
 
+  const fileInput = document.getElementById("soldiers-file-input");
+  const loadMessage = document.getElementById("soldiers-load-message");
+  if (fileInput) {
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target && ev.target.result;
+        if (typeof text !== "string") {
+          if (loadMessage) {
+            loadMessage.textContent = "שגיאה בקריאת הקובץ.";
+            loadMessage.className = "import-message import-warning";
+          }
+          fileInput.value = "";
+          return;
+        }
+        const { soldiers, error } = parseSoldiersFromCSVOrTSV(text);
+        if (error) {
+          if (loadMessage) {
+            loadMessage.textContent = error;
+            loadMessage.className = "import-message import-warning";
+          }
+          fileInput.value = "";
+          return;
+        }
+        manualSoldiers = soldiers;
+        normalizeCommandersPerGroup();
+        saveSoldiers();
+        renderSoldierGroups();
+        renderSoldiersTable();
+        if (loadMessage) {
+          loadMessage.textContent = `נטענו ${manualSoldiers.length} חיילים לפי קבוצה וחוזר מהבית.`;
+          loadMessage.className = "import-message import-success";
+        }
+        const validationBox = document.getElementById("soldiers-validation");
+        if (validationBox) validationBox.textContent = "";
+        fileInput.value = "";
+      };
+      reader.readAsText(file, "UTF-8");
+    });
+  }
+
   if (!manualSoldiers || manualSoldiers.length === 0) {
     manualSoldiers = buildDefaultSoldiers();
     saveSoldiers();
@@ -599,58 +814,6 @@ function setupSoldiersUI() {
       }
     });
   }
-}
-
-function setupPreviousRosterForm() {
-  const dateInput = document.getElementById("pr-date");
-  if (dateInput) {
-    dateInput.addEventListener("change", () => {
-      previousRosterStartDate = dateInput.value || "";
-      savePreviousRoster();
-      renderPreviousRosterTable();
-      updatePreviousRosterExportButtonState();
-    });
-  }
-
-  const exportBtn = document.getElementById(
-    "export-previous-roster-btn"
-  );
-  if (exportBtn) {
-    exportBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (!isPreviousRosterComplete()) {
-        alert("יש למלא את כל 24 השמות לפני ייצוא רשימת השמירות הקודמת.");
-        return;
-      }
-      const rows = buildPreviousRosterRows();
-      const headers = [
-        "date",
-        "start_time",
-        "end_time",
-        "position",
-        "name",
-      ];
-      const csvText = toCSV(headers, rows);
-      downloadCSV("previous_roster.csv", csvText);
-    });
-  }
-
-  const clearBtn = document.getElementById(
-    "clear-previous-roster-btn"
-  );
-  if (clearBtn) {
-    clearBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      previousRosterStartDate = "";
-      previousRosterNames = new Array(PREVIOUS_ROSTER_TOTAL_ROWS).fill("");
-      manualPreviousRoster = [];
-      savePreviousRoster();
-      renderPreviousRosterTable();
-      updatePreviousRosterExportButtonState();
-    });
-  }
-
-  updatePreviousRosterExportButtonState();
 }
 
 document.addEventListener("DOMContentLoaded", () => {

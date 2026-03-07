@@ -35,6 +35,14 @@
     <section id="soldiers-tab" class="card tab-content active">
       <h2>רשימת חיילים ידנית</h2>
 
+      <div class="field-group" style="margin-bottom: 1rem;">
+        <label for="soldiers-file-input">טען רשימת חיילים מקובץ (CSV/TSV)</label>
+        <div class="button-row" style="align-items: center; gap: 0.5rem;">
+          <input type="file" id="soldiers-file-input" accept=".csv,.tsv,.txt,text/csv,text/plain" />
+          <span id="soldiers-load-message" class="import-message" aria-live="polite"></span>
+        </div>
+      </div>
+
       <div id="soldiers-validation" class="error-box"></div>
 
       <section id="soldier-groups-builder" class="groups-builder">
@@ -129,6 +137,13 @@
           <input type="date" id="pr-date" required />
         </div>
       </form>
+
+      <div class="field-group" style="margin-top: 1rem;">
+        <label for="whatsapp-paste">הדבק רשימת שמירות מפורמט וואטסאפ</label>
+        <textarea id="whatsapp-paste" rows="10" placeholder="הדבק כאן את הסידור מפורמט וואטסאפ (כולל כותרות, שעות ומשטח/ש.ג אחורי)..." dir="rtl"></textarea>
+        <div id="whatsapp-import-message" class="import-message" aria-live="polite"></div>
+        <button type="button" id="whatsapp-import-btn" class="primary-btn">ייבא לרשימה הקודמת</button>
+      </div>
 
       <div class="table-wrapper">
         <table id="previous-roster-table" dir="rtl">

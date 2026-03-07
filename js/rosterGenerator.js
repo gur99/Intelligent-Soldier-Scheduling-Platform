@@ -12,12 +12,23 @@ import {
 } from "./constraints.js";
 import { createSeededRNG } from "./random.js";
 
-function buildJokerIntervals(jokers) {
+/**
+ * Build joker intervals from config. Fixed jokers use start/end date+time; random jokers
+ * are assigned to random blocks (by position and number of hours) using shiftBlocks and rng.
+ */
+function buildJokerIntervals(jokers, shiftBlocks, rng) {
   const intervals = [];
   if (!Array.isArray(jokers)) return intervals;
 
-  for (const j of jokers) {
-    if (!j) continue;
+  const fixedJokers = jokers.filter(
+    (j) => j && (j.type === "fixed" || (j.type !== "random" && j.startDate && j.endDate))
+  );
+  const randomJokers = jokers.filter((j) => j && j.type === "random");
+
+  const coveredKey = (position, blockIndex) => `${position}|${blockIndex}`;
+  const covered = new Set();
+
+  for (const j of fixedJokers) {
     const {
       name,
       position,
@@ -26,19 +37,13 @@ function buildJokerIntervals(jokers) {
       endDate,
       endTime,
     } = j;
-
-    if (!name || !position || !startDate || !startTime || !endDate || !endTime) {
-      continue;
-    }
+    if (!name || !position || !startDate || !startTime || !endDate || !endTime) continue;
 
     const startDateObj = parseDate(startDate);
     const endDateObj = parseDate(endDate);
     const startMinutes = parseTimeToMinutes(startTime);
     const endMinutes = parseTimeToMinutes(endTime);
-
-    if (!startDateObj || !endDateObj || startMinutes == null || endMinutes == null) {
-      continue;
-    }
+    if (!startDateObj || !endDateObj || startMinutes == null || endMinutes == null) continue;
 
     const startMidnightMs = new Date(
       startDateObj.getFullYear(),
@@ -50,20 +55,12 @@ function buildJokerIntervals(jokers) {
       endDateObj.getMonth(),
       endDateObj.getDate()
     ).getTime();
-
     const startMs = startMidnightMs + startMinutes * 60 * 1000;
     let endMs = endMidnightMs + endMinutes * 60 * 1000;
-
-    if (endMs <= startMs) {
-      endMs += 24 * 60 * 60 * 1000;
-    }
-
+    if (endMs <= startMs) endMs += 24 * 60 * 60 * 1000;
     const startEpochMin = Math.floor(startMs / (60 * 1000));
     const endEpochMin = Math.floor(endMs / (60 * 1000));
-
-    if (endEpochMin <= startEpochMin) {
-      continue;
-    }
+    if (endEpochMin <= startEpochMin) continue;
 
     intervals.push({
       id: `${String(name).trim()}|${position}|${startEpochMin}|${endEpochMin}`,
@@ -72,6 +69,56 @@ function buildJokerIntervals(jokers) {
       startEpochMin,
       endEpochMin,
     });
+
+    if (shiftBlocks && shiftBlocks.length === 12) {
+      for (let bi = 0; bi < shiftBlocks.length; bi++) {
+        const block = shiftBlocks[bi];
+        if (
+          block.startMinutesEpoch < endEpochMin &&
+          block.endMinutesEpoch > startEpochMin
+        ) {
+          covered.add(coveredKey(position, bi));
+        }
+      }
+    }
+  }
+
+  if (randomJokers.length > 0 && shiftBlocks && shiftBlocks.length === 12 && rng) {
+    for (const j of randomJokers) {
+      const name = (j.name || "").trim();
+      const position = j.position;
+      const hours = Number(j.hours);
+      if (!name || !position || !Number.isFinite(hours) || hours < 2) continue;
+
+      const numBlocks = Math.min(12, Math.max(1, Math.floor(hours / 2)));
+      const availableIndices = [];
+      for (let bi = 0; bi < shiftBlocks.length; bi++) {
+        if (!covered.has(coveredKey(position, bi))) {
+          availableIndices.push(bi);
+        }
+      }
+      if (availableIndices.length === 0) continue;
+
+      const toPick = Math.min(numBlocks, availableIndices.length);
+      const picked = [];
+      const pool = availableIndices.slice();
+      for (let i = 0; i < toPick && pool.length > 0; i++) {
+        const idx = Math.floor(rng() * pool.length);
+        picked.push(pool[idx]);
+        pool.splice(idx, 1);
+      }
+      for (const bi of picked) {
+        const block = shiftBlocks[bi];
+        covered.add(coveredKey(position, bi));
+        intervals.push({
+          id: `random|${name}|${position}|${bi}`,
+          name,
+          position,
+          startEpochMin: block.startMinutesEpoch,
+          endEpochMin: block.endMinutesEpoch,
+        });
+      }
+    }
   }
 
   return intervals;
@@ -157,7 +204,11 @@ export function generateRoster(previousRosterEntries, soldiers, config) {
   }
 
   const shiftBlocks = buildShiftBlocks(rosterDay);
-  const jokerIntervals = buildJokerIntervals(effectiveConfig.jokers);
+  const jokerIntervals = buildJokerIntervals(
+    effectiveConfig.jokers,
+    shiftBlocks,
+    rng
+  );
   if (!shiftBlocks || shiftBlocks.length !== 12) {
     return {
       success: false,
